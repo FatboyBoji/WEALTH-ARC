@@ -1,0 +1,17 @@
+SESA Web Application Template
+===========================
+
+
+Theme Configuration
+------------------
+Font: Chakra Petch
+Sizes:
+- Header: 32/150
+- Button: 18/150
+- Text: 14/150
+
+Colors:
+- Background: #192A38
+- Primary: #09BC8A
+- Secondary: #004346
+- Additional: #212121, #F3FFFC
