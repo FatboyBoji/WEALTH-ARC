@@ -76,4 +76,43 @@ api.interceptors.response.use(
   }
 );
 
+// Add these functions to make API calls to our new endpoints
+export const changeEmail = async (newEmail: string, password: string) => {
+  try {
+    const response = await api.post('/auth/change-email', { 
+      newEmail, 
+      password 
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error changing email:', error);
+    throw error;
+  }
+};
+
+export const changePassword = async (currentPassword: string, newPassword: string) => {
+  try {
+    const response = await api.post('/auth/change-password', { 
+      currentPassword, 
+      newPassword 
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error changing password:', error);
+    throw error;
+  }
+};
+
+export const changeUsername = async (newUsername: string) => {
+  try {
+    const response = await api.post('/auth/change-username', { 
+      newUsername 
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error changing username:', error);
+    throw error;
+  }
+};
+
 export default api; 

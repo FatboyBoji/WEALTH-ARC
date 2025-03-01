@@ -63,4 +63,9 @@ router.post('/verify-session', authController.verifySession.bind(authController)
 router.post('/check-session', authController.checkSession.bind(authController));
 router.post('/renew-session', authController.renewSession.bind(authController));
 
+// Profile management routes (all require authentication)
+router.post('/change-email', authenticateToken, (req, res) => authController.changeEmail(req, res));
+router.post('/change-password', authenticateToken, (req, res) => authController.changePassword(req, res));
+router.post('/change-username', authenticateToken, (req, res) => authController.changeUsername(req, res));
+
 export default router; 

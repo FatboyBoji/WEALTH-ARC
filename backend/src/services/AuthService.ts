@@ -4,16 +4,16 @@ import jwt from 'jsonwebtoken';
 import { RegisterUserDto, UserCredentials, TokenPayload, AuthTokens } from '../types/auth.types';
 import { PasswordPolicyService } from './passwordPolicy';
 import { RateLimiter } from './RateLimiter';
+import { prisma } from '../utils/db';
+import { BudgetService } from './BudgetService';
 
 export class AuthService {
-  private prisma: PrismaClient;
   private rateLimiter: RateLimiter;
   private readonly JWT_SECRET: string;
   private readonly ACCESS_TOKEN_EXPIRATION: string;
   private readonly REFRESH_TOKEN_EXPIRATION: string = '7d';
 
   constructor() {
-    this.prisma = new PrismaClient();
     this.rateLimiter = new RateLimiter();
     this.JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret';
     this.ACCESS_TOKEN_EXPIRATION = process.env.TOKEN_EXPIRATION || '15m';
@@ -33,7 +33,7 @@ export class AuthService {
       }
       
       // Check if username is already taken
-      const existingUsername = await this.prisma.user.findUnique({
+      const existingUsername = await prisma.user.findUnique({
         where: { username: userData.username }
       });
       
@@ -42,7 +42,7 @@ export class AuthService {
       }
       
       // Check if email is already registered
-      const existingEmail = await this.prisma.user.findUnique({
+      const existingEmail = await prisma.user.findUnique({
         where: { email: userData.email }
       });
       
@@ -51,7 +51,7 @@ export class AuthService {
       }
       
       // Get the default session limit from the admin user
-      const adminUser = await this.prisma.user.findFirst({
+      const adminUser = await prisma.user.findFirst({
         where: { role: 'admin' },
         select: { maxSessionCount: true }
       });
@@ -63,7 +63,7 @@ export class AuthService {
       const passwordHash = await bcrypt.hash(userData.password, salt);
       
       // Create new user
-      const newUser = await this.prisma.user.create({
+      const newUser = await prisma.user.create({
         data: {
           username: userData.username,
           email: userData.email,
@@ -72,6 +72,10 @@ export class AuthService {
           maxSessionCount: defaultSessionLimit // Use the default session limit
         }
       });
+      
+      // Create guidance budget categories for the new user
+      const budgetService = new BudgetService();
+      await budgetService.createDefaultCategories(newUser.id);
       
       // Auto-login: Create a session for the new user
       const tokens = await this.createSession(newUser, userAgent, ipAddress);
@@ -96,7 +100,7 @@ export class AuthService {
       this.rateLimiter.checkRateLimit(rateIdentifier);
 
       // Find user
-      const user = await this.prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { username: credentials.username },
         include: { 
           sessions: true // Include sessions to check count
@@ -127,7 +131,7 @@ export class AuthService {
       
       if (!isPasswordValid) {
         // Increment failed login attempts
-        await this.prisma.user.update({
+        await prisma.user.update({
           where: { id: user.id },
           data: { 
             failedLoginAttempts: {
@@ -144,7 +148,7 @@ export class AuthService {
       this.rateLimiter.clearAttempts(rateIdentifier);
 
       // Reset failed login attempts and set user to active on successful login
-      await this.prisma.user.update({
+      await prisma.user.update({
         where: { id: user.id },
         data: { 
           failedLoginAttempts: 0,
@@ -178,7 +182,7 @@ export class AuthService {
       }
       
       // Find the session by ID
-      const session = await this.prisma.session.findUnique({
+      const session = await prisma.session.findUnique({
         where: { id: decoded.sessionId },
         include: { user: true }
       });
@@ -197,7 +201,7 @@ export class AuthService {
       // Check if token is expired
       if (new Date() > session.expiresAt) {
         console.log('Refresh token expired');
-        await this.prisma.session.delete({
+        await prisma.session.delete({
           where: { id: session.id }
         }).catch(err => console.warn('Failed to delete expired session:', err));
         
@@ -236,7 +240,7 @@ export class AuthService {
       });
 
       // Update session with new refresh token
-      await this.prisma.session.update({
+      await prisma.session.update({
         where: { id: session.id },
         data: {
           refreshToken: newRefreshToken,
@@ -261,19 +265,19 @@ export class AuthService {
 
   async logout(refreshToken: string): Promise<void> {
     // Find the session to get the user ID
-    const session = await this.prisma.session.findFirst({
+    const session = await prisma.session.findFirst({
       where: { refreshToken }
     });
     
     if (session) {
       // Update user to set isActive to false
-      await this.prisma.user.update({
+      await prisma.user.update({
         where: { id: session.userId },
         data: { isActive: false }
       });
       
       // Delete the session
-      await this.prisma.session.deleteMany({
+      await prisma.session.deleteMany({
         where: { refreshToken }
       });
     }
@@ -281,7 +285,7 @@ export class AuthService {
 
   private async createSession(user: User, userAgent?: string, ipAddress?: string): Promise<AuthTokens> {
     // Create session in database first to get the session ID
-    const session = await this.prisma.session.create({
+    const session = await prisma.session.create({
       data: {
         userId: user.id,
         userAgent: userAgent || null,
@@ -311,7 +315,7 @@ export class AuthService {
     });
 
     // Update the session with the refresh token
-    await this.prisma.session.update({
+    await prisma.session.update({
       where: { id: session.id },
       data: { refreshToken }
     });
@@ -327,7 +331,7 @@ export class AuthService {
       const decoded = jwt.verify(token, this.JWT_SECRET) as TokenPayload;
       
       // Get the current token version from the database
-      const user = await this.prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { id: decoded.userId }
       });
       
@@ -358,7 +362,7 @@ export class AuthService {
 
   async terminateAllUserSessions(userId: number): Promise<void> {
     // Increment the token version to invalidate all existing tokens
-    await this.prisma.user.update({
+    await prisma.user.update({
       where: { id: userId },
       data: { 
         tokenVersion: {
@@ -369,7 +373,7 @@ export class AuthService {
     });
     
     // Delete all sessions for this user
-    await this.prisma.session.deleteMany({
+    await prisma.session.deleteMany({
       where: { userId }
     });
   }
@@ -385,7 +389,7 @@ export class AuthService {
       }
       
       // Find the session by ID
-      const session = await this.prisma.session.findUnique({
+      const session = await prisma.session.findUnique({
         where: { id: decoded.sessionId },
         include: { user: true }
       });
@@ -418,6 +422,134 @@ export class AuthService {
     } catch (error) {
       console.error('Error checking refresh token validity:', error);
       return false;
+    }
+  }
+
+  async changeEmail(userId: number, newEmail: string, password: string): Promise<User> {
+    try {
+      // Validate email format
+      if (!PasswordPolicyService.validateEmail(newEmail)) {
+        throw new Error('Invalid email format');
+      }
+      
+      // Find user
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      // Verify user's current password
+      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      if (!isPasswordValid) {
+        throw new Error('Current password is incorrect');
+      }
+      
+      // Check if email is already taken by another user
+      const existingEmail = await prisma.user.findUnique({
+        where: { email: newEmail }
+      });
+      
+      if (existingEmail && existingEmail.id !== userId) {
+        throw new Error('Email is already in use');
+      }
+      
+      // Update the email
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          email: newEmail,
+          updatedAt: new Date()
+        }
+      });
+      
+      return updatedUser;
+    } catch (error) {
+      console.error('Change email error:', error);
+      throw error;
+    }
+  }
+
+  async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<User> {
+    try {
+      // Find user
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isPasswordValid) {
+        throw new Error('Current password is incorrect');
+      }
+      
+      // Validate new password against policy
+      const passwordErrors = PasswordPolicyService.validatePassword(newPassword);
+      if (passwordErrors.length > 0) {
+        throw new Error(passwordErrors.join(', '));
+      }
+      
+      // Hash the new password
+      const salt = await bcrypt.genSalt(10);
+      const newPasswordHash = await bcrypt.hash(newPassword, salt);
+      
+      // Update password hash and increment token version to invalidate existing sessions
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          passwordHash: newPasswordHash,
+          // tokenVersion: { increment: 1 },
+          updatedAt: new Date()
+        }
+      });
+      
+      // Delete all sessions for this user to force re-login with new password
+      // await prisma.session.deleteMany({
+      //   where: { userId }
+      // });
+      
+      return updatedUser;
+    } catch (error) {
+      console.error('Change password error:', error);
+      throw error;
+    }
+  }
+
+  async changeUsername(userId: number, newUsername: string): Promise<User> {
+    try {
+      // Validate username format
+      if (!newUsername || newUsername.length < 3) {
+        throw new Error('Username must be at least 3 characters long');
+      }
+      
+      // Check if username is already taken
+      const existingUsername = await prisma.user.findUnique({
+        where: { username: newUsername }
+      });
+      
+      if (existingUsername) {
+        throw new Error('Username is already taken');
+      }
+      
+      // Update the username
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          username: newUsername,
+          updatedAt: new Date()
+        }
+      });
+      
+      return updatedUser;
+    } catch (error) {
+      console.error('Change username error:', error);
+      throw error;
     }
   }
 } 

@@ -7,6 +7,7 @@ interface User {
   userId: number;
   username: string;
   role: string;
+  email: string;
 }
 
 interface AuthContextType {
@@ -18,6 +19,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   verifySession: () => Promise<boolean>;
   error: string | null;
+  changeEmail: (newEmail: string, password: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  changeUsername: (newUsername: string) => Promise<void>;
 }
 
 // Create context
@@ -317,6 +321,90 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       return false;
     }
   };
+
+  // Change email function
+  const changeEmail = async (newEmail: string, password: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data } = await api.post('/auth/change-email', { 
+        newEmail, 
+        password 
+      });
+      
+      if (data.success) {
+        // Update the user in state with new email
+        setUser(prevUser => prevUser ? { ...prevUser, email: newEmail } : null);
+      }
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const errorResponse = error.response as any;
+        setError(errorResponse?.data?.message || 'Failed to update email');
+      } else {
+        setError('Failed to update email');
+      }
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Change password function
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data } = await api.post('/auth/change-password', { 
+        currentPassword, 
+        newPassword 
+      });
+      
+      if (data.success) {
+        // Logout after password change as all sessions are invalidated
+        // await logout();
+        setUser(prevUser => prevUser ? { ...prevUser, password: newPassword} : null);
+      }
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const errorResponse = error.response as any;
+        setError(errorResponse?.data?.message || 'Failed to update password');
+      } else {
+        setError('Failed to update password');
+      }
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Change username function
+  const changeUsername = async (newUsername: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data } = await api.post('/auth/change-username', { 
+        newUsername 
+      });
+      
+      if (data.success) {
+        // Update the user in state with new username
+        setUser(prevUser => prevUser ? { ...prevUser, username: newUsername } : null);
+      }
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const errorResponse = error.response as any;
+        setError(errorResponse?.data?.message || 'Failed to update username');
+      } else {
+        setError('Failed to update username');
+      }
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
     <AuthContext.Provider
@@ -329,6 +417,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         logout,
         verifySession,
         error,
+        changeEmail,
+        changePassword,
+        changeUsername,
       }}
     >
       {children}

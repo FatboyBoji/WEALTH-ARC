@@ -10,27 +10,27 @@ export const passwordPolicy = {
 export function validatePassword(password: string): string[] {
   const errors: string[] = [];
   
-  if (password.length < 8) {
-    errors.push('Password must be at least 8 characters long');
+  if (password.length < passwordPolicy.minLength) {
+    errors.push(`Password must be at least ${passwordPolicy.minLength} characters long`);
   }
   
-  if (password.length > 128) {
-    errors.push('Password must not exceed 128 characters');
+  if (password.length > passwordPolicy.maxLength) {
+    errors.push(`Password must not exceed ${passwordPolicy.maxLength} characters`);
   }
   
-  if (!/[A-Z]/.test(password)) {
+  if (passwordPolicy.requireUppercase && !/[A-Z]/.test(password)) {
     errors.push('Password must contain at least one uppercase letter');
   }
   
-  if (!/[a-z]/.test(password)) {
+  if (passwordPolicy.requireLowercase && !/[a-z]/.test(password)) {
     errors.push('Password must contain at least one lowercase letter');
   }
   
-  if (!/\d/.test(password)) {
+  if (passwordPolicy.requireNumbers && !/\d/.test(password)) {
     errors.push('Password must contain at least one number');
   }
   
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+  if (passwordPolicy.requireSpecialChars && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
     errors.push('Password must contain at least one special character');
   }
   

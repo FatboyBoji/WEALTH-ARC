@@ -1,13 +1,14 @@
 // This is your Prisma schema file
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["u0155"]
+  // public, u0155
+  schemas  = ["public"]
 }
 
 model User {
@@ -27,47 +28,68 @@ model User {
   createdBy           Int?      @map("created_by")
   updatedBy           Int?      @map("updated_by")
   maxSessionCount     Int       @default(5)
-  
+
   // Relations
-  sessions            Session[]
-  budgetItems         BudgetItem[]
-  
+  sessions    Session[]
+  budgetItems BudgetItem[]
+  categories  Category[]
+
   @@map("user_wa")
-  @@schema("u0155")
+  @@schema("public")
 }
 
 model Session {
-  id                String    @id @default(uuid())
-  userId            Int       @map("user_id")
-  refreshToken      String    @unique @map("refresh_token")
-  userAgent         String?   @map("user_agent")
-  ipAddress         String?   @map("ip_address")
-  expiresAt         DateTime  @map("expires_at")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  
+  id           String   @id @default(uuid())
+  userId       Int      @map("user_id")
+  refreshToken String   @unique @map("refresh_token")
+  userAgent    String?  @map("user_agent")
+  ipAddress    String?  @map("ip_address")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
   // Relations
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("user_sessions_wa")
-  @@schema("u0155")
+  @@schema("public")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  userId    Int      @map("user_id")
+  name      String
+  type      String // 'income' or 'expense'
+  isDefault Boolean  @default(false)
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  budgetItems BudgetItem[]
+
+  @@map("budget_categories_wa")
+  @@schema("public")
 }
 
 model BudgetItem {
-  id          String    @id @default(uuid())
-  userId      Int       @map("user_id")
-  name        String
-  amount      Float
-  itemType    String    @map("item_type") // 'income' or 'expense'
-  category    String    // 'fixed' or 'variable'
-  month       Int
-  year        Int
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
+  id         String   @id @default(uuid())
+  userId     Int      @map("user_id")
+  categoryId String   @map("category_id")
+  name       String
+  amount     Float
+  itemType   String   @map("item_type") // 'income' or 'expense'
+  repeat     Int      @default(1) // 1: None, 2: Monthly, 3: Quarterly, 4: Yearly
+  month      Int
+  year       Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
   // Relations
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
   @@map("budget_items_wa")
-  @@schema("u0155")
+  @@schema("public")
 }

@@ -303,4 +303,124 @@ export class AuthController {
       });
     }
   }
+
+  async changeEmail(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      const { newEmail, password } = req.body;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+        return;
+      }
+      
+      if (!newEmail || !password) {
+        res.status(400).json({
+          success: false,
+          message: 'Email and current password are required'
+        });
+        return;
+      }
+      
+      const updatedUser = await this.authService.changeEmail(userId, newEmail, password);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Email updated successfully',
+        data: {
+          userId: updatedUser.id,
+          username: updatedUser.username,
+          email: updatedUser.email
+        }
+      });
+    } catch (error) {
+      console.error('Email update error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update email';
+      res.status(400).json({
+        success: false,
+        message: errorMessage
+      });
+    }
+  }
+
+  async changePassword(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+        return;
+      }
+      
+      if (!currentPassword || !newPassword) {
+        res.status(400).json({
+          success: false,
+          message: 'Current password and new password are required'
+        });
+        return;
+      }
+      
+      await this.authService.changePassword(userId, currentPassword, newPassword);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Password updated successfully. Please login again with your new password.'
+      });
+    } catch (error) {
+      console.error('Password update error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update password';
+      res.status(400).json({
+        success: false,
+        message: errorMessage
+      });
+    }
+  }
+
+  async changeUsername(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      const { newUsername } = req.body;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+        return;
+      }
+      
+      if (!newUsername) {
+        res.status(400).json({
+          success: false,
+          message: 'New username is required'
+        });
+        return;
+      }
+      
+      const updatedUser = await this.authService.changeUsername(userId, newUsername);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Username updated successfully',
+        data: {
+          userId: updatedUser.id,
+          username: updatedUser.username
+        }
+      });
+    } catch (error) {
+      console.error('Username update error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update username';
+      res.status(400).json({
+        success: false,
+        message: errorMessage
+      });
+    }
+  }
 } 
