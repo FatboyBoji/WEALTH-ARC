@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{\"..\\\\node_modules\\\\@heroui\\\\modal\\\\dist\\\\chunk-UKDXCIYN.mjs -> @heroui/dom-animation\":{\"id\":\"..\\\\node_modules\\\\@heroui\\\\modal\\\\dist\\\\chunk-UKDXCIYN.mjs -> @heroui/dom-animation\",\"files\":[\"static/chunks/_app-pages-browser_node_modules_heroui_dom-animation_dist_index_mjs.js\"]}}"
+self.__REACT_LOADABLE_MANIFEST="{}"
