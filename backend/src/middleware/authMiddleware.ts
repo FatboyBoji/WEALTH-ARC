@@ -9,6 +9,7 @@ declare global {
         userId: number;
         username: string;
         role: string;
+        email?: string;
       };
     }
   }
@@ -33,7 +34,8 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     req.user = {
       userId: userData.userId,
       username: userData.username,
-      role: userData.role
+      role: userData.role,
+      email: userData.email
     };
     
     next();

@@ -2,10 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import ProtectedLayout from '@/components/layout/ProtectedLayout';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { 
   getCategories, 
   getBudgetItems, 
@@ -17,7 +13,13 @@ import {
   BudgetSummary,
   createCategory
 } from '@/lib/budgetApi';
-import { AlertCircle, Check, ChevronDown, ChevronUp, Trash2, PlusCircle } from 'lucide-react';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import BudgetDrawer from '@/components/budget/BudgetDrawer';
+import CategoryDrawer from '@/components/budget/CategoryDrawer';
+import WalletLoadingStates from '@/components/budget/walletPage/WalletLoadingStates';
+import WalletContent from '@/components/budget/walletPage/WalletContent';
+import DesktopItemDialog from '@/components/budget/walletPage/DesktopItemDialog';
+import DesktopCategoryDialog from '@/components/budget/walletPage/DesktopCategoryDialog';
 
 // Month formatter
 const formatMonth = (month: number, year: number) => {
@@ -34,7 +36,18 @@ const getCurrentMonthYear = () => {
   };
 };
 
+// Repeat options for select
+const repeatOptions = [
+  { value: 1, label: 'No repeat' },
+  { value: 2, label: 'Monthly' },
+  { value: 3, label: 'Quarterly' },
+  { value: 4, label: 'Yearly' }
+];
+
 export default function WalletPage() {
+  // Responsive views
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  
   // State for current month/year
   const [date, setDate] = useState(getCurrentMonthYear());
   const [formattedDate, setFormattedDate] = useState(formatMonth(date.month, date.year));
@@ -109,65 +122,84 @@ export default function WalletPage() {
     }
   };
 
-  // Change month handler
-  const changeMonth = (increment: number) => {
-    setDate(prevDate => {
-      let newMonth = prevDate.month + increment;
-      let newYear = prevDate.year;
+  // Handle month change
+  const handleMonthChange = (offset: number) => {
+    let newMonth = date.month + offset;
+    let newYear = date.year;
       
       if (newMonth > 12) {
         newMonth = 1;
-        newYear++;
+      newYear += 1;
       } else if (newMonth < 1) {
         newMonth = 12;
-        newYear--;
+      newYear -= 1;
       }
       
-      setFormattedDate(formatMonth(newMonth, newYear));
-      return { month: newMonth, year: newYear };
+    setDate({
+      month: newMonth,
+      year: newYear
     });
+    setFormattedDate(formatMonth(newMonth, newYear));
   };
 
   // Toggle section collapse
-  const toggleSection = (categoryId: string) => {
-    setCollapsedSections(prev => ({
-      ...prev,
-      [categoryId]: !prev[categoryId]
+  const handleToggleSection = (categoryId: string) => {
+    setCollapsedSections(prevState => ({
+      ...prevState,
+      [categoryId]: !prevState[categoryId]
     }));
   };
 
-  // Filter categories by type
-  const getCategoriesByType = (type: 'income' | 'expense') => {
-    return categories.filter(cat => cat.type === type && cat.isVisible);
+  // Delete budget item
+  const handleDeleteItem = async (itemId: string) => {
+    if (confirm('Are you sure you want to delete this item?')) {
+      try {
+        await deleteBudgetItem(itemId);
+        await loadData(); // Reload data
+      } catch (err) {
+        console.error('Error deleting item:', err);
+        setError('Failed to delete item. Please try again.');
+      }
+    }
   };
-
-  // Filter budget items by category
-  const getItemsByCategoryId = (categoryId: string) => {
-    return budgetItems.filter(item => item.categoryId === categoryId);
-  };
-
-  // Add new item handlers
-  const handleOpenAddItemDialog = (itemType: 'income' | 'expense') => {
-    setShowAddItemDialog(true);
+  
+  // Add new budget item
+  const handleAddItem = (type: 'income' | 'expense') => {
     setNewItem({
       name: '',
       amount: '',
-      itemType,
+      itemType: type,
       categoryId: '',
       repeat: 1
     });
     setFormErrors([]);
     setSuccessMessage('');
+    setShowAddItemDialog(true);
   };
-
+  
+  // Add new category
+  const handleAddCategory = (type: 'income' | 'expense' = 'expense') => {
+    setNewCategory({
+      name: '',
+      type
+    });
+    setFormErrors([]);
+    setSuccessMessage('');
+    setShowAddCategoryDialog(true);
+  };
+  
+  // Submit new item
   const handleAddItemSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormErrors([]);
     
-    // Validate form
-    const errors = [];
-    if (!newItem.name) errors.push('Name is required');
-    if (!newItem.amount || isNaN(Number(newItem.amount))) errors.push('Amount must be a valid number');
+    // Reset messages
+    setFormErrors([]);
+    setSuccessMessage('');
+    
+    // Validation
+    const errors: string[] = [];
+    if (!newItem.name.trim()) errors.push('Name is required');
+    if (!newItem.amount || Number(newItem.amount) <= 0) errors.push('Amount must be greater than 0');
     if (!newItem.categoryId) errors.push('Please select a category');
     
     if (errors.length > 0) {
@@ -179,43 +211,49 @@ export default function WalletPage() {
       await createBudgetItem({
         name: newItem.name,
         amount: Number(newItem.amount),
-        itemType: newItem.itemType,
         categoryId: newItem.categoryId,
+        repeat: newItem.repeat,
         month: date.month,
         year: date.year,
-        repeat: newItem.repeat
+        itemType: newItem.itemType
       });
       
-      setSuccessMessage('Budget item added successfully!');
+      setSuccessMessage(`${newItem.itemType === 'income' ? 'Income' : 'Expense'} added successfully!`);
       
-      // Reload data after a short delay
+      // Reload data after a short delay (to show success message)
       setTimeout(() => {
         loadData();
         setShowAddItemDialog(false);
+        
+        // Reset form
+        setNewItem({
+          name: '',
+          amount: '',
+          itemType: newItem.itemType, // Keep the current type selected
+          categoryId: '',
+          repeat: 1
+        });
       }, 1500);
-    } catch (err: any) {
-      setFormErrors([err.response?.data?.message || 'Failed to add budget item']);
+    } catch (err) {
+      console.error('Error adding item:', err);
+      setFormErrors(['Failed to add item. Please try again.']);
     }
   };
-
-  // Add new category handlers
-  const handleOpenAddCategoryDialog = (type: 'income' | 'expense') => {
-    setShowAddCategoryDialog(true);
-    setNewCategory({
-      name: '',
-      type
-    });
-    setFormErrors([]);
-    setSuccessMessage('');
-  };
-
+  
+  // Submit new category
   const handleAddCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormErrors([]);
     
-    // Validate form
-    if (!newCategory.name) {
-      setFormErrors(['Category name is required']);
+    // Reset messages
+    setFormErrors([]);
+    setSuccessMessage('');
+    
+    // Validation
+    const errors: string[] = [];
+    if (!newCategory.name.trim()) errors.push('Category name is required');
+    
+    if (errors.length > 0) {
+      setFormErrors(errors);
       return;
     }
     
@@ -227,376 +265,118 @@ export default function WalletPage() {
       
       setSuccessMessage('Category added successfully!');
       
-      // Reload data after a short delay
+      // Reload data after a short delay (to show success message)
       setTimeout(() => {
         loadData();
         setShowAddCategoryDialog(false);
+        
+        // Reset form
+        setNewCategory({
+          name: '',
+          type: newCategory.type // Keep the current type selected
+        });
       }, 1500);
-    } catch (err: any) {
-      setFormErrors([err.response?.data?.message || 'Failed to add category']);
-    }
-  };
-
-  // Delete item handler
-  const handleDeleteItem = async (itemId: string) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      try {
-        await deleteBudgetItem(itemId);
-        // Reload data
-        loadData();
       } catch (err) {
-        console.error('Error deleting item:', err);
-        setError('Failed to delete item. Please try again.');
-      }
+      console.error('Error adding category:', err);
+      setFormErrors(['Failed to add category. Please try again.']);
     }
   };
-
-  // Repeat options
-  const repeatOptions = [
-    { value: 1, label: 'No repeat' },
-    { value: 2, label: 'Monthly' },
-    { value: 3, label: 'Quarterly' },
-    { value: 4, label: 'Yearly' }
-  ];
+  
+  // Prepare data for category lists
+  const incomeCategories = categories
+    .filter(cat => cat.type === 'income' && cat.isVisible)
+    .map(cat => ({
+      ...cat,
+      items: budgetItems.filter(item => item.categoryId === cat.id)
+    }));
+    
+  const expenseCategories = categories
+    .filter(cat => cat.type === 'expense' && cat.isVisible)
+    .map(cat => ({
+      ...cat,
+      items: budgetItems.filter(item => item.categoryId === cat.id)
+    }));
 
   return (
     <ProtectedLayout>
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="loader">Loading...</div>
-        </div>
-      ) : error ? (
-        <div className="bg-red-900/30 border border-red-800 p-4 rounded-lg mb-4">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-            <p className="text-red-500">{error}</p>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Month Navigator */}
-          <div className="mb-4 flex justify-between items-center">
-            <Button onClick={() => changeMonth(-1)} variant="outline" className="bg-transparent text-white">
-              &lt;
-            </Button>
-            <h1 className="text-2xl font-bold">{formattedDate}</h1>
-            <Button onClick={() => changeMonth(1)} variant="outline" className="bg-transparent text-white">
-              &gt;
-            </Button>
-          </div>
-          
-          {/* Distribution Summary */}
-          <div className="mb-4 bg-[#212121] rounded-lg overflow-hidden">
-            <div className="p-3 border-b border-gray-700 flex justify-between items-center">
-              <h2 className="font-medium">Distribution</h2>
-              <ChevronDown className="h-5 w-5" />
-            </div>
-            <div className="p-3 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-300">Total Income</span>
-                <span className="font-bold">{summary.totalIncome.toFixed(2)}€</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-300">Total expenses</span>
-                <span className="font-bold">{summary.totalExpenses.toFixed(2)}€</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-300">Remaining Budget</span>
-                <span className="font-bold">{summary.remainingBudget.toFixed(2)}€</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Income Categories */}
-          {getCategoriesByType('income').map(category => (
-            <div key={category.id} className="mb-4 bg-[#212121] rounded-lg overflow-hidden">
-              <div 
-                className="p-3 border-b border-gray-700 flex justify-between items-center cursor-pointer"
-                onClick={() => toggleSection(category.id)}
-              >
-                <h2 className="font-medium">{category.name}</h2>
-                {collapsedSections[category.id] ? (
-                  <ChevronDown className="h-5 w-5" />
-                ) : (
-                  <ChevronUp className="h-5 w-5" />
-                )}
-              </div>
-              
-              {!collapsedSections[category.id] && (
-                <div className="p-3 space-y-2">
-                  {getItemsByCategoryId(category.id).map(item => (
-                    <div key={item.id} className="flex justify-between items-center">
-                      <span>{item.name}</span>
-                      <div className="flex items-center">
-                        <span className="mr-2 text-[#09BC8A]">{item.amount.toFixed(2)}€</span>
-                        <button 
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="text-gray-400 hover:text-red-500"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {/* Add item button */}
-                  <button 
-                    onClick={() => handleOpenAddItemDialog('income')}
-                    className="w-full mt-2 flex items-center justify-center py-2 text-sm text-gray-300 hover:text-[#09BC8A]"
-                  >
-                    <PlusCircle className="h-4 w-4 mr-1" />
-                    <span>Add Income Item</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-          
-          {/* Expense Categories */}
-          {getCategoriesByType('expense').map(category => (
-            <div key={category.id} className="mb-4 bg-[#212121] rounded-lg overflow-hidden">
-              <div 
-                className="p-3 border-b border-gray-700 flex justify-between items-center cursor-pointer"
-                onClick={() => toggleSection(category.id)}
-              >
-                <h2 className="font-medium">{category.name}</h2>
-                {collapsedSections[category.id] ? (
-                  <ChevronDown className="h-5 w-5" />
-                ) : (
-                  <ChevronUp className="h-5 w-5" />
-                )}
-              </div>
-              
-              {!collapsedSections[category.id] && (
-                <div className="p-3 space-y-2">
-                  {getItemsByCategoryId(category.id).map(item => (
-                    <div key={item.id} className="flex justify-between items-center">
-                      <span>{item.name}</span>
-                      <div className="flex items-center">
-                        <span className="mr-2 text-red-400">{item.amount.toFixed(2)}€</span>
-                        <button 
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="text-gray-400 hover:text-red-500"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {/* Add item button */}
-                  <button 
-                    onClick={() => handleOpenAddItemDialog('expense')}
-                    className="w-full mt-2 flex items-center justify-center py-2 text-sm text-gray-300 hover:text-red-400"
-                  >
-                    <PlusCircle className="h-4 w-4 mr-1" />
-                    <span>Add Expense Item</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-          
-          {/* Add Category Buttons */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button 
-              onClick={() => handleOpenAddCategoryDialog('income')}
-              className="bg-[#004346] p-3 rounded-lg text-center hover:bg-[#00595d]"
-            >
-              <span>Add Income Category</span>
-            </button>
-            <button 
-              onClick={() => handleOpenAddCategoryDialog('expense')}
-              className="bg-[#004346] p-3 rounded-lg text-center hover:bg-[#00595d]"
-            >
-              <span>Add Expense Category</span>
-            </button>
-          </div>
-          
-          {/* Add Item Dialog */}
-          <Dialog open={showAddItemDialog} onOpenChange={setShowAddItemDialog}>
-            <DialogContent className="bg-[#192A38] text-white border-gray-700">
-              <DialogHeader>
-                <DialogTitle>
-                  Add {newItem.itemType === 'income' ? 'Income' : 'Expense'} Item
-                </DialogTitle>
-              </DialogHeader>
-              
-              <form onSubmit={handleAddItemSubmit}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      value={newItem.name}
-                      onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                      className="bg-[#3a3a3a] border-gray-700 text-white"
-                      placeholder={`What is this ${newItem.itemType} for?`}
-                    />
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="amount">Amount (€)</Label>
-                    <Input
-                      id="amount"
-                      value={newItem.amount}
-                      onChange={(e) => setNewItem({...newItem, amount: e.target.value})}
-                      className="bg-[#3a3a3a] border-gray-700 text-white"
-                      placeholder="0.00"
-                      type="number"
-                      step="0.01"
-                    />
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="category">Category</Label>
-                    <select
-                      id="category"
-                      value={newItem.categoryId}
-                      onChange={(e) => setNewItem({...newItem, categoryId: e.target.value})}
-                      className="flex h-9 w-full rounded-md border border-gray-700 bg-[#3a3a3a] px-3 py-1 text-sm text-white"
-                    >
-                      <option value="">Select a category</option>
-                      {categories
-                        .filter(cat => cat.type === newItem.itemType && cat.isVisible)
-                        .map(cat => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </option>
-                        ))
-                      }
-                    </select>
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="repeat">Repeat</Label>
-                    <select
-                      id="repeat"
-                      value={newItem.repeat}
-                      onChange={(e) => setNewItem({...newItem, repeat: Number(e.target.value)})}
-                      className="flex h-9 w-full rounded-md border border-gray-700 bg-[#3a3a3a] px-3 py-1 text-sm text-white"
-                    >
-                      {repeatOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {/* Error messages */}
-                  {formErrors.length > 0 && (
-                    <div className="p-3 rounded bg-red-900/30 border border-red-800">
-                      <div className="flex items-start">
-                        <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
-                        <div>
-                          {formErrors.map((err, index) => (
-                            <p key={index} className="text-red-500 text-sm">{err}</p>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Success message */}
-                  {successMessage && (
-                    <div className="p-3 rounded bg-green-900/30 border border-green-800">
-                      <div className="flex items-center">
-                        <Check className="h-5 w-5 text-green-500 mr-2" />
-                        <p className="text-green-500 text-sm">{successMessage}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+      <div className="max-w-4xl mx-auto">
+        <WalletLoadingStates isLoading={isLoading} error={error} />
+        
+        {!isLoading && !error && (
+          <>
+            <WalletContent 
+              formattedDate={formattedDate}
+              onPrevMonth={() => handleMonthChange(-1)}
+              onNextMonth={() => handleMonthChange(1)}
+              summary={summary}
+              incomeCategories={incomeCategories}
+              expenseCategories={expenseCategories}
+              collapsedSections={collapsedSections}
+              onToggleSection={handleToggleSection}
+              onDeleteItem={handleDeleteItem}
+              onAddIncome={() => handleAddItem('income')}
+              onAddExpense={() => handleAddItem('expense')}
+              onAddCategory={() => handleAddCategory()}
+            />
+            
+            {/* Mobile Drawers - only shown on mobile */}
+            {isMobile && (
+              <>
+                <BudgetDrawer 
+                  isOpen={showAddItemDialog}
+                  onClose={() => setShowAddItemDialog(false)}
+                  onSubmit={handleAddItemSubmit}
+                  itemType={newItem.itemType}
+                  categories={categories}
+                  formData={newItem}
+                  setFormData={setNewItem}
+                  formErrors={formErrors}
+                  successMessage={successMessage}
+                />
                 
-                <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowAddItemDialog(false)}
-                    className="bg-transparent border-gray-700 text-white hover:bg-gray-800"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit"
-                    className="bg-[#09BC8A] text-[#192A38] hover:bg-[#09BC8A]/90"
-                  >
-                    Add Item
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-          
-          {/* Add Category Dialog */}
-          <Dialog open={showAddCategoryDialog} onOpenChange={setShowAddCategoryDialog}>
-            <DialogContent className="bg-[#192A38] text-white border-gray-700">
-              <DialogHeader>
-                <DialogTitle>
-                  Add {newCategory.type === 'income' ? 'Income' : 'Expense'} Category
-                </DialogTitle>
-              </DialogHeader>
-              
-              <form onSubmit={handleAddCategorySubmit}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="categoryName">Category Name</Label>
-                    <Input
-                      id="categoryName"
-                      value={newCategory.name}
-                      onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
-                      className="bg-[#3a3a3a] border-gray-700 text-white"
-                      placeholder="Enter category name"
-                    />
-                  </div>
-                  
-                  {/* Error messages */}
-                  {formErrors.length > 0 && (
-                    <div className="p-3 rounded bg-red-900/30 border border-red-800">
-                      <div className="flex items-start">
-                        <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
-                        <div>
-                          {formErrors.map((err, index) => (
-                            <p key={index} className="text-red-500 text-sm">{err}</p>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Success message */}
-                  {successMessage && (
-                    <div className="p-3 rounded bg-green-900/30 border border-green-800">
-                      <div className="flex items-center">
-                        <Check className="h-5 w-5 text-green-500 mr-2" />
-                        <p className="text-green-500 text-sm">{successMessage}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <CategoryDrawer
+                  isOpen={showAddCategoryDialog}
+                  onClose={() => setShowAddCategoryDialog(false)}
+                  onSubmit={handleAddCategorySubmit}
+                  categoryType={newCategory.type}
+                  formData={newCategory}
+                  setFormData={setNewCategory}
+                  formErrors={formErrors}
+                  successMessage={successMessage}
+                />
+              </>
+            )}
+            
+            {/* Desktop: Add Item Dialog */}
+            {!isMobile && (
+              <>
+                <DesktopItemDialog
+                  open={showAddItemDialog}
+                  onOpenChange={setShowAddItemDialog}
+                  onSubmit={handleAddItemSubmit}
+                  itemType={newItem.itemType}
+                  categories={categories}
+                  formData={newItem}
+                  setFormData={setNewItem}
+                  formErrors={formErrors}
+                  successMessage={successMessage}
+                  repeatOptions={repeatOptions}
+                />
                 
-                <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowAddCategoryDialog(false)}
-                    className="bg-transparent border-gray-700 text-white hover:bg-gray-800"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit"
-                    className="bg-[#09BC8A] text-[#192A38] hover:bg-[#09BC8A]/90"
-                  >
-                    Add Category
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </>
-      )}
+                <DesktopCategoryDialog
+                  open={showAddCategoryDialog}
+                  onOpenChange={setShowAddCategoryDialog}
+                  onSubmit={handleAddCategorySubmit}
+                  formData={newCategory}
+                  setFormData={setNewCategory}
+                  formErrors={formErrors}
+                  successMessage={successMessage}
+                />
+              </>
+            )}
+          </>
+        )}
+      </div>
     </ProtectedLayout>
   );
 } 

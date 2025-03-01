@@ -33,7 +33,8 @@ router.get('/me', authenticateToken, (req, res) => {
     data: {
       userId: req.user?.userId,
       username: req.user?.username,
-      role: req.user?.role
+      role: req.user?.role,
+      email: req.user?.email
     }
   });
 });

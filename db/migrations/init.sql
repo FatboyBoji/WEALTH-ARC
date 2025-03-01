@@ -44,14 +44,29 @@ CREATE TABLE "user_sessions_wa" (
 -- Create unique index for refresh tokens
 CREATE UNIQUE INDEX "user_sessions_wa_refresh_token_key" ON "user_sessions_wa"("refresh_token");
 
+-- Create Categories Table
+CREATE TABLE "budget_categories_wa" (
+    "id" TEXT NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "name" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "isVisible" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "budget_categories_wa_pkey" PRIMARY KEY ("id")
+);
+
 -- Create Budget Items Table
 CREATE TABLE "budget_items_wa" (
     "id" TEXT NOT NULL,
     "user_id" INTEGER NOT NULL,
+    "category_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "item_type" TEXT NOT NULL,
-    "category" TEXT NOT NULL,
+    "repeat" INTEGER NOT NULL DEFAULT 1,
     "month" INTEGER NOT NULL,
     "year" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -64,8 +79,14 @@ CREATE TABLE "budget_items_wa" (
 ALTER TABLE "user_sessions_wa" ADD CONSTRAINT "user_sessions_wa_user_id_fkey" 
     FOREIGN KEY ("user_id") REFERENCES "user_wa"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+ALTER TABLE "budget_categories_wa" ADD CONSTRAINT "budget_categories_wa_user_id_fkey" 
+    FOREIGN KEY ("user_id") REFERENCES "user_wa"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
 ALTER TABLE "budget_items_wa" ADD CONSTRAINT "budget_items_wa_user_id_fkey" 
     FOREIGN KEY ("user_id") REFERENCES "user_wa"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "budget_items_wa" ADD CONSTRAINT "budget_items_wa_category_id_fkey" 
+    FOREIGN KEY ("category_id") REFERENCES "budget_categories_wa"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Create Admin User (Optional - uncomment if needed)
 -- INSERT INTO "user_wa" ("username", "email", "password_hash", "role", "is_active", "is_email_verified", "updated_at") 

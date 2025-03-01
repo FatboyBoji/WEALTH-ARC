@@ -300,6 +300,7 @@ export class AuthService {
       userId: Number(user.id),
       username: user.username,
       role: user.role,
+      email: user.email,
       sessionId: session.id, // Include the session ID in payload
       tokenVersion: user.tokenVersion
     };

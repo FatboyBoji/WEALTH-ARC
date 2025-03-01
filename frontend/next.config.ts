@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   basePath: '',
   images: {
     unoptimized: true,
-    disableStaticImages: true,
+    // disableStaticImages: true,
     remotePatterns: [
       {
         protocol: 'https',

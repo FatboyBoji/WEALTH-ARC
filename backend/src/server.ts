@@ -7,6 +7,7 @@ import authRoutes from './routes/authRoutes';
 import budgetRoutes from './routes/budgetRoutes';
 import adminRoutes from './routes/adminRoutes';
 import userRoutes from './routes/userRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
 import { prisma } from './utils/db';
 
 // Load environment variables
@@ -55,6 +56,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/budget', budgetRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Add a test endpoint
 

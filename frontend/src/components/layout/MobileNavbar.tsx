@@ -1,12 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Import SVG components
+import HomeSvg from '@/components/icons/HomeSvg';
+import WalletSvg from '@/components/icons/WalletSvg';
+import StatisticSvg from '@/components/icons/StatisticSvg';
+import SettingsSvg from '@/components/icons/SettingsSvg';
+import FilesSvg from '@/components/icons/FilesSvg';
+
 const MobileNavbar: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const { user } = useAuth();
   
@@ -15,81 +21,41 @@ const MobileNavbar: React.FC = () => {
   };
   
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-    { name: 'Wallet', path: '/wallet', icon: '💰' },
-    { name: 'Statistics', path: '/statistics', icon: '📈' },
-    { name: 'Profile', path: '/profile', icon: '👤' },
+    { name: 'Dashboard', path: '/dashboard', icon: HomeSvg },
+    { name: 'Wallet', path: '/wallet', icon: WalletSvg },
+    { name: 'Statistics', path: '/statistics', icon: StatisticSvg },
+    { name: 'Profile', path: '/profile', icon: SettingsSvg },
   ];
   
   // Add admin route for admin users
   if (user?.role === 'admin') {
-    navItems.push({ name: 'Admin', path: '/admin', icon: '⚙️' });
+    navItems.push({ name: 'Admin', path: '/admin', icon: FilesSvg });
   }
   
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
-  
   return (
-    <>
-      {/* Mobile Top Bar */}
-      <div className="bg-[#004346] p-4 flex items-center justify-between">
-        <span className="text-xl font-bold text-white">WealthArc</span>
-        <button 
-          className="text-white focus:outline-none"
-          onClick={toggleMenu}
-        >
-          {isOpen ? (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
-        </button>
-      </div>
-      
-      {/* Mobile Menu */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-[#004346] z-50 pt-16">
-          <div className="p-4">
-            <nav>
-              <ul className="space-y-4">
-                {navItems.map((item) => (
-                  <li key={item.path}>
-                    <Link 
-                      href={item.path}
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                        isActive(item.path) ? 'bg-[#09BC8A] text-white' : 'text-gray-300'
-                      }`}
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <span>{item.icon}</span>
-                      <span>{item.name}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-            
-            {/* User Info */}
-            <div className="mt-8 border-t border-[#015d5f] pt-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-[#09BC8A] flex items-center justify-center">
-                  {user?.username?.substring(0, 1)?.toUpperCase() || 'U'}
-                </div>
-                <div>
-                  <div className="text-white font-medium">{user?.username}</div>
-                  <div className="text-gray-400 text-sm">{user?.role}</div>
-                </div>
+    <div className="fixed bottom-0 left-0 right-0 z-50">
+      {/* Simple navbar with larger icons */}
+      <div className="h-24 bg-[#004346]">
+        <div className="flex justify-around items-center h-full">
+          {navItems.map((item) => (
+            <Link 
+              key={item.path}
+              href={item.path}
+              className={`flex flex-col items-center justify-center ${
+                isActive(item.path) ? 'opacity-100' : 'opacity-60 hover:opacity-90'
+              }`}
+            >
+              <div className={`w-16 h-16 flex items-center justify-center rounded-full ${
+                isActive(item.path) ? 'bg-[#09BC8A]' : ''
+              }`}>
+                <item.icon className="w-19 h-10 text-white" />
               </div>
-            </div>
-          </div>
+              {/* <span className="text-xs text-white mt-1 mb-2">{item.name}</span> */}
+            </Link>
+          ))}
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 };
 
