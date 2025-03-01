@@ -42,6 +42,7 @@ import DesktopInsightDialog from '@/components/dashboard/DesktopInsightDialog';
 // Import from wallet components
 import BudgetDrawer from '@/components/budget/BudgetDrawer';
 import { toast } from 'sonner';
+import ScrollToTop from '@/components/ScrollToTop';
 
 // Add this interface near the top of the file with other imports
 interface NewBudgetItem {
@@ -590,6 +591,8 @@ export default function DashboardPage() {
           </Button>
         </div>
       )} */}
+      {/* Scroll to Top Button */}
+      <ScrollToTop threshold={10} />
     </ProtectedLayout>
   );
 } 
