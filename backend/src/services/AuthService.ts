@@ -295,13 +295,13 @@ export class AuthService {
       }
     });
     
-    // Create payload for tokens including session ID
+    // Create payload for tokens including email
     const payload: TokenPayload = {
       userId: Number(user.id),
       username: user.username,
       role: user.role,
       email: user.email,
-      sessionId: session.id, // Include the session ID in payload
+      sessionId: session.id,
       tokenVersion: user.tokenVersion
     };
 

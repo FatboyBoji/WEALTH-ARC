@@ -6,22 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Check, AlertCircle } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface CategoryDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
-  categoryType: 'income' | 'expense';
+  categoryType: 'income' | 'expense' | 'mixed';
   formData: {
     name: string;
-    type: 'income' | 'expense';
+    type: 'income' | 'expense' | 'mixed';
   };
   setFormData: React.Dispatch<React.SetStateAction<{
     name: string;
-    type: 'income' | 'expense';
+    type: 'income' | 'expense' | 'mixed';
   }>>;
   formErrors: string[];
   successMessage: string;
+  isSubmitting?: boolean;
 }
 
 export default function CategoryDrawer({
@@ -32,7 +34,8 @@ export default function CategoryDrawer({
   formData,
   setFormData,
   formErrors,
-  successMessage
+  successMessage,
+  isSubmitting
 }: CategoryDrawerProps) {
   return (
     <Drawer 
@@ -49,7 +52,7 @@ export default function CategoryDrawer({
           <>
             <DrawerHeader className="border-b border-gray-700/30 pb-4 pt-6">
               <h2 className="text-2xl font-medium text-[#09BC8A] text-center">
-                Add {categoryType === 'income' ? 'Income' : 'Expense'} Category
+                Add New Category
               </h2>
             </DrawerHeader>
 
@@ -64,6 +67,34 @@ export default function CategoryDrawer({
                     className="bg-[#004346] border-none text-white h-14 rounded-xl shadow-sm focus:ring-[#09BC8A] focus:ring-1"
                     placeholder="Enter category name"
                   />
+                </div>
+                
+                <div className="space-y-4">
+                  <Label className="text-[#F3FFFC] font-medium">Category Type</Label>
+                  <RadioGroup 
+                    value={formData.type} 
+                    onValueChange={(value: string) => setFormData({...formData, type: value as 'income' | 'expense' | 'mixed'})}
+                    className="flex flex-col gap-3"
+                  >
+                    <div className="flex items-center space-x-2 bg-[#004346]/50 p-3 rounded-lg">
+                      <RadioGroupItem value="income" id="income" className="text-[#09BC8A]" />
+                      <Label htmlFor="income" className="cursor-pointer font-normal text-[#F3FFFC]">
+                        Income Only
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 bg-[#004346]/50 p-3 rounded-lg">
+                      <RadioGroupItem value="expense" id="expense" className="text-[#09BC8A]" />
+                      <Label htmlFor="expense" className="cursor-pointer font-normal text-[#F3FFFC]">
+                        Expense Only
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 bg-[#004346]/50 p-3 rounded-lg">
+                      <RadioGroupItem value="mixed" id="mixed" className="text-[#09BC8A]" />
+                      <Label htmlFor="mixed" className="cursor-pointer font-normal text-[#F3FFFC]">
+                        Mixed (Both Income & Expenses)
+                      </Label>
+                    </div>
+                  </RadioGroup>
                 </div>
                 
                 {/* Error messages */}
@@ -104,9 +135,18 @@ export default function CategoryDrawer({
                 <Button 
                   type="submit"
                   form="category-form"
-                  className="bg-[#09BC8A] text-[#192A38] hover:bg-[#09BC8A]/90 rounded-xl h-14 font-medium"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-[#09BC8A] text-[#192A38] hover:bg-[#09BC8A]/90 rounded-xl h-14 font-medium"
                 >
-                  Add Category
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#192A38]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Creating Category...</span>
+                    </div>
+                  ) : 'Create Category'}
                 </Button>
               </div>
             </DrawerFooter>

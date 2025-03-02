@@ -45,31 +45,25 @@ export class DashboardController {
         });
         return;
       }
-
-      const { transactionId } = req.params;
-      const updateData = req.body;
       
-      const transaction = await this.dashboardService.updateTransaction(
+      const transactionId = req.params.id;
+      const transactionData = req.body;
+      
+      console.log('Controller received update request for:', transactionId);
+      console.log('With data:', transactionData);
+      
+      const updatedTransaction = await this.dashboardService.updateTransaction(
         req.user.userId, 
         transactionId, 
-        updateData
+        transactionData
       );
       
       res.status(200).json({
         success: true,
-        data: transaction
+        data: updatedTransaction
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating transaction:', error);
-      
-      if (error.message === 'Transaction not found') {
-        res.status(404).json({
-          success: false,
-          message: error.message
-        });
-        return;
-      }
-      
       res.status(500).json({
         success: false,
         message: 'Failed to update transaction'

@@ -15,4 +15,9 @@ router.get('/account/summary', authenticateToken, (req, res) => dashboardControl
 // Insights route
 router.get('/insights', authenticateToken, (req, res) => dashboardController.getInsights(req, res));
 
+// Add this new route for updating transactions
+router.patch('/transactions/:id', authenticateToken, (req, res) => {
+  dashboardController.updateTransaction(req, res);
+});
+
 export default router; 

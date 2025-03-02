@@ -4,14 +4,14 @@ import api from './api';
 export interface Category {
   id: string;
   name: string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'mixed';
   isDefault: boolean;
   isVisible: boolean;
 }
 
 export interface CreateCategoryDto {
   name: string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'mixed';
 }
 
 // Budget item types

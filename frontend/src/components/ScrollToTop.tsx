@@ -2,23 +2,33 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 interface ScrollToTopProps {
   threshold?: number;  // Scroll threshold in pixels
+  mobileThreshold?: number; // Different threshold for mobile
   className?: string; // Optional additional classes
 }
 
-export default function ScrollToTop({ threshold = 400, className = '' }: ScrollToTopProps) {
+export default function ScrollToTop({ 
+  threshold = 400, 
+  mobileThreshold = 200, // Lower threshold for mobile
+  className = '' 
+}: ScrollToTopProps) {
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  
+  // Use different threshold based on device
+  const activeThreshold = isMobile ? mobileThreshold : threshold;
 
   useEffect(() => {
     const handleScroll = () => {
-      setShowScrollTop(window.scrollY > threshold);
+      setShowScrollTop(window.scrollY > activeThreshold);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [threshold]);
+  }, [activeThreshold]);
 
   const scrollToTop = () => {
     window.scrollTo({
@@ -35,7 +45,8 @@ export default function ScrollToTop({ threshold = 400, className = '' }: ScrollT
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           onClick={scrollToTop}
-          className={`fixed bottom-8 right-8 p-3 rounded-full bg-[#042A2B] hover:bg-[#62A87C] 
+          className={`fixed ${isMobile ? 'bottom-20' : 'bottom-8'} right-8 p-3 rounded-full 
+                     bg-[#042A2B] hover:bg-[#62A87C] 
                      shadow-lg transition-all duration-300 hover:shadow-xl z-50
                      group flex items-center justify-center ${className}`}
           aria-label="Scroll to top"

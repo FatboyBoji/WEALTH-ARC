@@ -9,9 +9,6 @@ import WalletActions from '@/components/budget/walletPage/WalletActions';
 import { BudgetSummary } from '@/lib/budgetApi';
 
 interface WalletContentProps {
-  formattedDate: string;
-  onPrevMonth: () => void;
-  onNextMonth: () => void;
   summary: BudgetSummary;
   incomeCategories: Array<Category & { items: BudgetItem[] }>;
   expenseCategories: Array<Category & { items: BudgetItem[] }>;
@@ -24,9 +21,6 @@ interface WalletContentProps {
 }
 
 export default function WalletContent({
-  formattedDate,
-  onPrevMonth,
-  onNextMonth,
   summary,
   incomeCategories,
   expenseCategories,
@@ -39,12 +33,6 @@ export default function WalletContent({
 }: WalletContentProps) {
   return (
     <div>
-      <MonthSelector 
-        formattedDate={formattedDate}
-        onPrevMonth={onPrevMonth}
-        onNextMonth={onNextMonth}
-      />
-      
       <BudgetSummaryCard summary={summary} />
       
       <WalletActions 

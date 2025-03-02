@@ -79,12 +79,13 @@ model BudgetItem {
   categoryId String   @map("category_id")
   name       String
   amount     Float
-  itemType   String   @map("item_type") // 'income' or 'expense'
+  itemType   String   @map("item_type") // 'income' or 'expense' or 'neutral'
   repeat     Int      @default(1) // 1: None, 2: Monthly, 3: Quarterly, 4: Yearly
   month      Int
   year       Int
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
+  // metadata   Json?    // lets not user metadata for now
 
   // Relations
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)

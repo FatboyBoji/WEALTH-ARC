@@ -107,6 +107,9 @@ export default function DashboardPage() {
   const [showAddExpenseDrawer, setShowAddExpenseDrawer] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
 
+  // Add isSubmitting state to handle form submission loading
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Load summary data
   useEffect(() => {
     loadData();
@@ -146,6 +149,7 @@ export default function DashboardPage() {
   const handleQuickAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormErrors([]);
+    setIsSubmitting(true); // Set loading to true at start
     
     // Validate form
     const errors = [];
@@ -155,6 +159,7 @@ export default function DashboardPage() {
     
     if (errors.length > 0) {
       setFormErrors(errors);
+      setIsSubmitting(false); // Reset loading if validation fails
       return;
     }
     
@@ -176,9 +181,11 @@ export default function DashboardPage() {
       setTimeout(() => {
         loadData();
         setShowAddDialog(false);
+        setIsSubmitting(false); // Reset loading
       }, 1500);
     } catch (err: any) {
       setFormErrors([err.response?.data?.message || 'Failed to add item']);
+      setIsSubmitting(false); // Reset loading on error
     }
   };
 
@@ -212,6 +219,11 @@ export default function DashboardPage() {
   const handleViewTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
     setShowTransactionDetails(true);
+  };
+
+  const handleTransactionsUpdated = (updatedTransactions: Transaction[]) => {
+    setTransactions(updatedTransactions);
+    setShowTransactionDetails(false);
   };
 
   // View insight details
@@ -286,7 +298,7 @@ export default function DashboardPage() {
 
   return (
     <ProtectedLayout>
-      <div className='ml-6 mr-6'>
+      <div className='ml-0 mr-0'>
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#09BC8A] mb-2">
             Welcome, {user?.username}!
@@ -468,7 +480,8 @@ export default function DashboardPage() {
             <div className="mt-8">
               <TransactionList 
                 transactions={transactions} 
-                onViewTransaction={handleViewTransaction} 
+                onViewTransaction={handleViewTransaction}
+                onTransactionsUpdated={handleTransactionsUpdated}
               />
             </div>
             
@@ -479,23 +492,6 @@ export default function DashboardPage() {
                 onViewInsight={handleViewInsight} 
               />
             </div>
-            
-            {/* Mobile Drawers - only shown on mobile */}
-            {isMobile && (
-              <>
-                <TransactionDrawer
-                  isOpen={showTransactionDetails}
-                  onClose={() => setShowTransactionDetails(false)}
-                  transaction={selectedTransaction}
-                />
-                
-                <InsightDrawer
-                  isOpen={showInsightDetails}
-                  onClose={() => setShowInsightDetails(false)}
-                  insight={selectedInsight}
-                />
-              </>
-            )}
             
             {/* Desktop Dialogs - only shown on desktop */}
             {!isMobile && (
@@ -517,13 +513,6 @@ export default function DashboardPage() {
         )}
       </div>
       
-      {/* Transaction Drawer */}
-      <TransactionDrawer
-        isOpen={showTransactionDetails}
-        onClose={() => setShowTransactionDetails(false)}
-        transaction={selectedTransaction}
-      />
-      
       {/* Insight Drawer */}
       <InsightDrawer
         isOpen={showInsightDetails}
@@ -537,13 +526,18 @@ export default function DashboardPage() {
         onClose={() => setShowAddIncomeDrawer(false)}
         onSubmit={async (e) => {
           e.preventDefault();
-          await handleAddItem({
-            name: newItem.name,
-            amount: newItem.amount,
-            itemType: 'income',
-            categoryId: newItem.categoryId,
-            repeat: newItem.repeat
-          });
+          setIsSubmitting(true);
+          try {
+            await handleAddItem({
+              name: newItem.name,
+              amount: newItem.amount,
+              itemType: 'income',
+              categoryId: newItem.categoryId,
+              repeat: newItem.repeat
+            });
+          } finally {
+            setIsSubmitting(false);
+          }
         }}
         itemType="income"
         categories={categories}
@@ -551,6 +545,7 @@ export default function DashboardPage() {
         setFormData={setNewItem}
         formErrors={formErrors || []}
         successMessage={successMessage || ''}
+        isSubmitting={isSubmitting}
       />
       
       {/* Add Expense Drawer */}
@@ -559,13 +554,18 @@ export default function DashboardPage() {
         onClose={() => setShowAddExpenseDrawer(false)}
         onSubmit={async (e) => {
           e.preventDefault();
-          await handleAddItem({
-            name: newItem.name,
-            amount: newItem.amount,
-            itemType: 'expense',
-            categoryId: newItem.categoryId,
-            repeat: newItem.repeat
-          });
+          setIsSubmitting(true);
+          try {
+            await handleAddItem({
+              name: newItem.name,
+              amount: newItem.amount,
+              itemType: 'expense',
+              categoryId: newItem.categoryId,
+              repeat: newItem.repeat
+            });
+          } finally {
+            setIsSubmitting(false);
+          }
         }}
         itemType="expense"
         categories={categories}
@@ -573,26 +573,11 @@ export default function DashboardPage() {
         setFormData={setNewItem}
         formErrors={formErrors || []}
         successMessage={successMessage || ''}
+        isSubmitting={isSubmitting}
       />
 
-      {/* {isMobile && (
-        <div className="fixed bottom-20 right-6 flex flex-col gap-4">
-          <Button
-            onClick={() => setShowAddExpenseDrawer(true)}
-            className="w-14 h-14 rounded-full bg-[#004346] hover:bg-[#004346]/90 flex items-center justify-center shadow-lg"
-          >
-            <span className="text-xl">-</span>
-          </Button>
-          <Button
-            onClick={() => setShowAddIncomeDrawer(true)}
-            className="w-14 h-14 rounded-full bg-[#09BC8A] hover:bg-[#09BC8A]/90 text-[#192A38] flex items-center justify-center shadow-lg"
-          >
-            <span className="text-xl">+</span>
-          </Button>
-        </div>
-      )} */}
-      {/* Scroll to Top Button */}
-      <ScrollToTop threshold={10} />
+      {/* Scroll to Top Button with lower mobile threshold */}
+      <ScrollToTop threshold={400} mobileThreshold={200} />
     </ProtectedLayout>
   );
 } 

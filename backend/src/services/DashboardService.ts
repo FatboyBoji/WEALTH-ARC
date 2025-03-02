@@ -40,23 +40,28 @@ export class DashboardService {
   }
 
   // Get recent transactions (based on budget items)
-  async getRecentTransactions(userId: number, limit = 10): Promise<Transaction[]> {
-    // We'll use budget items as transactions for now
-    const items = await prisma.budgetItem.findMany({
-      where: { userId },
-      include: { category: true },
-      orderBy: { createdAt: 'desc' },
-      take: limit
+  async getRecentTransactions(userId: number, limit: number = 10): Promise<Transaction[]> {
+    const budgetItems = await prisma.budgetItem.findMany({
+      where: {
+        userId
+      },
+      orderBy: {
+        updatedAt: 'desc' // Order by updatedAt
+      },
+      take: limit,
+      include: {
+        category: true
+      }
     });
-
-    // Convert budget items to the transaction format
-    return items.map(item => ({
+    
+    // Convert budget items to transactions, using updatedAt as the date
+    return budgetItems.map(item => ({
       id: item.id,
       name: item.name,
       amount: item.itemType === 'expense' ? -Number(item.amount) : Number(item.amount),
-      date: new Date(item.year, item.month - 1, 15).toISOString(), // Use middle of month as placeholder
+      date: item.updatedAt.toISOString(), // Use updatedAt as transaction date
       category: item.category.name,
-      account: 'Main Account', // Default for now
+      account: 'Main Account',
       notes: `${item.itemType === 'income' ? 'Income' : 'Expense'} for ${item.month}/${item.year}`
     }));
   }
@@ -79,38 +84,47 @@ export class DashboardService {
     if (data.name) updateData.name = data.name;
     if (data.amount !== undefined) {
       updateData.amount = Math.abs(data.amount); // Store positive values
-      
-      // If amount sign changed, we might need to change item type
-      if ((data.amount < 0 && item.itemType === 'income') || 
-          (data.amount > 0 && item.itemType === 'expense')) {
-        // This is complex as it may require changing category
-        // For now we'll just update the amount
-      }
     }
     
-    // Update date requires changing month/year
+    // Set the month and year based on the date
     if (data.date) {
+      console.log('Received date update:', data.date);
       const date = new Date(data.date);
+      console.log('Parsed date:', date);
+      
       updateData.month = date.getMonth() + 1;
       updateData.year = date.getFullYear();
+      
+      // Set the updatedAt field to the exact date the user selected
+      updateData.updatedAt = date;
+      
+      console.log('Setting updatedAt to:', date);
     }
-
-    // Ensure the updated timestamp is set
-    updateData.updatedAt = new Date();
+    
+    // Update notes if provided
+    if (data.notes !== undefined) {
+      // Store notes without metadata (since metadata is now disabled in schema)
+      // We could store this in a notes field if needed
+    }
+    
+    // Log the final update data being sent to the database
+    console.log('Final update data:', JSON.stringify(updateData, null, 2));
 
     // Update the budget item
     const updated = await prisma.budgetItem.update({
       where: { id: transactionId },
       data: updateData,
-      include: { category: true }
+      include: {
+        category: true
+      }
     });
-
-    // Convert back to transaction format - notes is handled in the return mapping
+    
+    // Convert back to transaction format using updatedAt as the date
     return {
       id: updated.id,
       name: updated.name,
       amount: updated.itemType === 'expense' ? -Number(updated.amount) : Number(updated.amount),
-      date: new Date(updated.year, updated.month - 1, 15).toISOString(),
+      date: updated.updatedAt.toISOString(), // Use updatedAt as the transaction date
       category: updated.category.name,
       account: 'Main Account',
       notes: data.notes || `${updated.itemType === 'income' ? 'Income' : 'Expense'} for ${updated.month}/${updated.year}`

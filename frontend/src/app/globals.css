@@ -225,3 +225,145 @@ img, svg {
     @apply bg-background text-foreground;
   }
 }
+
+/* Add these styles to your globals.css or equivalent */
+.calendar-fix {
+  position: relative;
+  z-index: 9999;
+  pointer-events: auto !important;
+}
+
+.popover-content-fix {
+  z-index: 9999;
+  pointer-events: auto !important;
+}
+
+/* Add these styles to your globals.css for an elegant calendar */
+.calendar-popup-container {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  z-index: 50;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+  animation: calendarFadeIn 0.2s ease-out;
+}
+
+.calendar-popup {
+  position: relative;
+  background-color: #192A38;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px;
+  overflow: hidden;
+}
+
+.calendar-popup::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 16px;
+  height: 16px;
+  background-color: #192A38;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.calendar-elegant {
+  --accent-color: #09BC8A;
+  --highlight-color: #004346;
+  background-color: transparent;
+  border: none;
+}
+
+.calendar-elegant .rdp-button:hover:not([disabled]) {
+  background-color: rgba(9, 188, 138, 0.15);
+}
+
+.calendar-elegant .rdp-day_selected, 
+.calendar-elegant .rdp-day_selected:focus-visible, 
+.calendar-elegant .rdp-day_selected:hover {
+  background-color: #09BC8A;
+  color: #192A38;
+  font-weight: bold;
+}
+
+.calendar-elegant .rdp-nav_button {
+  color: white;
+  opacity: 0.8;
+}
+
+.calendar-elegant .rdp-nav_button:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.calendar-elegant .rdp-head_cell {
+  color: #09BC8A;
+  font-weight: 600;
+}
+
+.calendar-elegant .rdp-caption {
+  margin-bottom: 8px;
+}
+
+.calendar-elegant .rdp-caption_label {
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@keyframes calendarFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Add these styles for the calendar overlay */
+.calendar-overlay {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.calendar-overlay-content {
+  animation: scaleIn 0.2s ease-out;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* HeroUI Calendar custom styling */
+.calendar-overlay-content [data-theme="dark"] {
+  --calendar-background-color: #192A38;
+  --calendar-border-color: rgba(255, 255, 255, 0.1);
+  --calendar-header-color: white;
+  --calendar-cell-color: rgba(255, 255, 255, 0.8);
+  --calendar-selected-background: #09BC8A;
+  --calendar-selected-color: #192A38;
+  --calendar-hover-background: rgba(9, 188, 138, 0.15);
+  --calendar-hover-color: white;
+  --calendar-disabled-color: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0; 
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}

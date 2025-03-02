@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProtectedLayout from '@/components/layout/ProtectedLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Check } from 'lucide-react';
+import { AlertCircle, Check, Mail, Key, User, FileText, Lock, Info, LogOut } from 'lucide-react';
 import { validatePassword } from '@/utils/passwordPolicy';
+import api, { getUserProfile } from '@/lib/api';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 export default function ProfilePage() {
   const { user, logout, changeEmail, changePassword, changeUsername, isLoading, error } = useAuth();
@@ -31,6 +33,49 @@ export default function ProfilePage() {
   // Validation and success states
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [successMessage, setSuccessMessage] = useState('');
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [displayUser, setDisplayUser] = useState(user);
+  
+  // Add loading states for each form
+  const [isSubmittingUsername, setIsSubmittingUsername] = useState(false);
+  const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  
+  // Load user data
+  useEffect(() => {
+    if (user) {
+      setDisplayUser(user);
+      setIsProfileLoading(false);
+      console.log('Profile page user data:', {
+        username: user.username,
+        email: user.email, 
+        isEmailDefined: typeof user.email !== 'undefined'
+      });
+      
+      // If email is undefined or null, fetch complete user data
+      if (!user.email) {
+        const fetchUserDetails = async () => {
+          try {
+            const userData = await getUserProfile();
+            if (userData && userData.data && userData.data.email) {
+              // Set complete user data with email
+              setDisplayUser({
+                ...user,
+                email: userData.data.email
+              });
+              console.log('Updated user data with email:', userData.data.email);
+            }
+          } catch (error) {
+            console.error('Error fetching user details:', error);
+          }
+        };
+        
+        fetchUserDetails();
+      }
+    } else {
+      console.log('User data not yet available');
+    }
+  }, [user]);
   
   // Email Dialog Handlers
   const handleOpenEmailDialog = () => {
@@ -158,125 +203,214 @@ export default function ProfilePage() {
     }
   };
   
-  console.log('User object:', user);
+  const handleLogout = async () => {
+    await logout();
+    router.push('/auth/login');
+  };
+  
+  // Update username handler
+  const handleUpdateUsername = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormErrors([]);
+    setSuccessMessage('');
+    setIsSubmittingUsername(true); // Start loading
+    
+    try {
+      // Validate
+      if (!newUsername.trim()) {
+        setFormErrors(['Username cannot be empty']);
+        setIsSubmittingUsername(false);
+        return;
+      }
+      
+      if (newUsername.length < 3) {
+        setFormErrors(['Username must be at least 3 characters long']);
+        setIsSubmittingUsername(false);
+        return;
+      }
+      
+      await changeUsername(newUsername);
+      setSuccessMessage('Username updated successfully');
+      
+      setTimeout(() => {
+        setIsSubmittingUsername(false);
+      }, 1000);
+      
+    } catch (error: any) {
+      setFormErrors([error.message || 'Failed to update username']);
+      setIsSubmittingUsername(false);
+    }
+  };
+  
+  // Similarly update email and password handlers...
+  const handleUpdateEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormErrors([]);
+    setSuccessMessage('');
+    setIsSubmittingEmail(true); // Start loading
+    
+    try {
+      // Form validation...
+      
+      await changeEmail(newEmail, emailPassword);
+      
+      setSuccessMessage('Email updated successfully');
+      
+      setTimeout(() => {
+        setIsSubmittingEmail(false);
+      }, 1000);
+      
+    } catch (error: any) {
+      setFormErrors([error.message || 'Failed to update email']);
+      setIsSubmittingEmail(false);
+    }
+  };
+  
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormErrors([]);
+    setSuccessMessage('');
+    setIsSubmittingPassword(true); // Start loading
+    
+    try {
+      // Form validation...
+      
+      await changePassword(currentPassword, newPassword);
+      
+      setSuccessMessage('Password updated successfully');
+      
+      setTimeout(() => {
+        setIsSubmittingPassword(false);
+      }, 1000);
+      
+    } catch (error: any) {
+      setFormErrors([error.message || 'Failed to update password']);
+      setIsSubmittingPassword(false);
+    }
+  };
   
   return (
     <ProtectedLayout>
-      <div className='ml-6 mr-6'>
-        <div className="mb-6 ml-4">
-          <h1 className="text-2xl font-bold">My Profile</h1>
-          <p className="text-gray-300">Manage your account settings</p>
-        </div> 
-        
-        {/* User Info */}
-        <div className="bg-[#212121] rounded-lg pl-5 pt-2 pb-2 mb-6">
-          <div className="flex items-center mt-4">
-            <div className="w-20 h-20 rounded-full bg-[#004346] flex items-center justify-center text-2xl mr-4 mb-4">
-              {user?.username?.substring(0, 1)?.toUpperCase() || 'U'}
-            </div>
-            <div>
-              <h2 className="text-4xl pl-5 font-semibold">Hi {user?.username}</h2>
-              {user?.email && <p className="ml-5 mt-2 text-gray-400">{user?.email}</p>}
-            </div>
-          </div>
+      <div className="w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-6 space-y-6">
+        {/* Header */}
+        <div className="border-b border-[#09BC8A]/30 pb-4">
+          <h1 className="text-2xl font-bold">Account Settings</h1>
+          <p className="text-[#9CA3AF] mt-1">Manage your profile and preferences</p>
         </div>
         
-        {/* Settings */}
-        <div className="bg-[#212121] rounded-lg overflow-hidden mb-6">
-          <div className="p-3 border-b border-gray-700">
-            <h2 className="font-medium">Account Settings</h2>
-          </div>
+        {/* Profile Information */}
+        <section>
+          <h2 className="text-lg font-medium mb-4 text-[#F3FFFC]">Profile Information</h2>
           
-          <div className="divide-y divide-gray-700">
-            <button 
-              className="w-full p-4 text-left flex items-center hover:bg-gray-800 transition-colors"
-              onClick={handleOpenEmailDialog}
-            >
-              <span className="mr-3">✉️</span>
-              <span>Change Email</span>
-            </button>
-            
-            <button 
-              className="w-full p-4 text-left flex items-center hover:bg-gray-800 transition-colors"
-              onClick={handleOpenPasswordDialog}
-            >
-              <span className="mr-3">🔒</span>
-              <span>Change Password</span>
-            </button>
-            
-            <button 
-              className="w-full p-4 text-left flex items-center hover:bg-gray-800 transition-colors"
-              onClick={handleOpenUsernameDialog}
-            >
-              <span className="mr-3">👤</span>
-              <span>Change Username</span>
-            </button>
-            
-            <button className="w-full p-4 text-left flex items-center hover:bg-gray-800 transition-colors">
-              <span className="mr-3">🔔</span>
-              <span>Notifications</span>
-            </button>
-            
-            <button className="w-full p-4 text-left flex items-center hover:bg-gray-800 transition-colors">
-              <span className="mr-3">🌙</span>
-              <span>Dark Mode</span>
-            </button>
+          <div className="bg-[#192A38] rounded-xl overflow-hidden border border-[#09BC8A]/40 shadow-xl">
+            <div className="flex flex-row items-start p-6">
+              <div className="w-16 h-16 rounded-full bg-[#004346] flex items-center justify-center text-xl flex-shrink-0 border-2 border-[#09BC8A]/30 mr-4">
+                {displayUser?.username?.substring(0, 1)?.toUpperCase() || 'U'}
+              </div>
+              
+              <div className="flex-1 pt-1">
+                <div className="flex flex-col mb-4">
+                  <h3 className="text-xl font-medium truncate">
+                    {isProfileLoading ? (
+                      <div className="h-6 w-40 bg-gray-700/50 animate-pulse rounded"></div>
+                    ) : (
+                      displayUser?.username
+                    )}
+                  </h3>
+                  {isProfileLoading ? (
+                    <div className="h-5 w-48 bg-gray-700/50 animate-pulse rounded mt-1"></div>
+                  ) : (
+                    (displayUser?.email && displayUser.email !== 'undefined') ? (
+                      <p className="text-[#9CA3AF] text-sm truncate mt-1">
+                        {displayUser?.email}
+                      </p>
+                    ) : (
+                      <p className="text-[#9CA3AF] text-sm truncate mt-1 italic">
+                        Email not available
+                      </p>
+                    )
+                  )}
+                </div>
+                
+                <div className="flex flex-col sm:flex-row w-full gap-3">
+                  <button 
+                    onClick={handleOpenUsernameDialog}
+                    className="flex items-center justify-center flex-1 px-4 py-3 text-sm font-medium rounded-md border border-[#09BC8A]/30 hover:bg-[#09BC8A]/10 transition-colors text-[#F3FFFC]"
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Edit Username
+                  </button>
+                  
+                  <button 
+                    onClick={handleOpenEmailDialog}
+                    className="flex items-center justify-center flex-1 px-4 py-3 text-sm font-medium rounded-md border border-[#09BC8A]/30 hover:bg-[#09BC8A]/10 transition-colors text-[#F3FFFC]"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Change Email
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
         
-        {/* About */}
-        <div className="bg-[#212121] rounded-lg overflow-hidden mb-8">
-          <div className="p-3 border-b border-gray-700">
-            <h2 className="font-medium">About</h2>
-          </div>
+        {/* Security Section */}
+        <section>
+          <h2 className="text-lg font-medium mb-2 mt-8 text-[#F3FFFC]">Security</h2>
           
-          <div className="divide-y divide-gray-700">
-            <button className="w-full p-4 text-left flex items-center hover:bg-gray-800 transition-colors">
-              <span className="mr-3">📘</span>
-              <span>Terms of Service</span>
-            </button>
-            
-            <button className="w-full p-4 text-left flex items-center hover:bg-gray-800 transition-colors">
-              <span className="mr-3">🔒</span>
-              <span>Privacy Policy</span>
-            </button>
-            
-            <button className="w-full p-4 text-left flex items-center hover:bg-gray-800 transition-colors">
-              <span className="mr-3">ℹ️</span>
-              <span>About Wealth Arc</span>
-            </button>
+          <div className="bg-[#192A38] rounded-xl overflow-hidden border border-[#09BC8A]/40 shadow-lg">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Key className="h-5 w-5 text-[#09BC8A] mr-3" />
+                  <div>
+                    <h3 className="text-base font-medium">Password</h3>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleOpenPasswordDialog}
+                  className="px-16 py-4 text-sm font-medium rounded-lg bg-transparent border border-[#09BC8A]/50 hover:bg-[#09BC8A]/10 transition-colors text-[#F3FFFC]"
+                >
+                  Change
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
         
-        {/* Logout Button */}
-        <button 
-          onClick={logout} 
-          className="w-full bg-red-500 text-white rounded-lg py-3 font-bold hover:bg-red-600 transition-colors"
-        >
-          Logout
-        </button>
+        {/* Account Actions */}
+        <section>
+          <div className="flex flex-col sm:flex-row gap-4 mt-8 mb-8">
+            <button 
+              onClick={logout} 
+              className="flex-1 bg-transparent border border-red-500/70 text-red-400 rounded-lg py-3 px-4 font-medium hover:bg-red-900/20 transition-colors flex items-center justify-center"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </button>
+            
+            {displayUser?.role === 'admin' && (
+              <button 
+                onClick={() => router.push('/admin')} 
+                className="flex-1 bg-[#004346] text-white rounded-lg py-3 px-4 font-medium hover:bg-[#00595d] transition-colors"
+              >
+                Admin Panel
+              </button>
+            )}
+          </div>
+        </section>
         
-        {/* Admin Dashboard Button */}
-        {user?.role === 'admin' && (
-          <button 
-            onClick={() => router.push('/admin')} 
-            className="w-full mt-4 bg-[#004346] text-white rounded-lg py-3 font-bold hover:bg-[#00595d] transition-colors"
-          >
-            Admin Dashboard
-          </button>
-        )}
-        
-        {/* Change Email Dialog */}
+        {/* Email Dialog */}
         {showEmailDialog && (
           <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
-            <DialogContent className="bg-[#2a2a2a] text-white border-gray-700 sm:max-w-[425px]">
+            <DialogContent className="bg-[#1e3446] text-white border-[#004346] sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Change Email</DialogTitle>
                 <DialogDescription className="text-gray-400">
                   Enter your new email address and current password.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleEmailSubmit}>
+              <form onSubmit={handleUpdateEmail}>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="newEmail">New Email</Label>
@@ -285,10 +419,11 @@ export default function ProfilePage() {
                       type="email"
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder="Enter new email"
-                      className="bg-[#3a3a3a] border-gray-700 text-white"
+                      placeholder="Enter new email address"
+                      className="bg-[#192A38] border-gray-700 text-white"
                     />
                   </div>
+                  
                   <div className="grid gap-2">
                     <Label htmlFor="currentPassword">Current Password</Label>
                     <Input
@@ -296,14 +431,14 @@ export default function ProfilePage() {
                       type="password"
                       value={emailPassword}
                       onChange={(e) => setEmailPassword(e.target.value)}
-                      placeholder="Enter current password"
-                      className="bg-[#3a3a3a] border-gray-700 text-white"
+                      placeholder="Enter your current password"
+                      className="bg-[#192A38] border-gray-700 text-white"
                     />
                   </div>
                   
-                  {/* Error messages */}
+                  {/* Messages */}
                   {formErrors.length > 0 && (
-                    <div className="mt-2 p-3 rounded bg-red-900/30 border border-red-800">
+                    <div className="p-3 rounded bg-red-900/30 border border-red-800">
                       <div className="flex items-start">
                         <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
                         <div>
@@ -315,9 +450,8 @@ export default function ProfilePage() {
                     </div>
                   )}
                   
-                  {/* Success message */}
                   {successMessage && (
-                    <div className="mt-2 p-3 rounded bg-green-900/30 border border-green-800">
+                    <div className="p-3 rounded bg-green-900/30 border border-green-800">
                       <div className="flex items-center">
                         <Check className="h-5 w-5 text-green-500 mr-2" />
                         <p className="text-green-500 text-sm">{successMessage}</p>
@@ -330,16 +464,23 @@ export default function ProfilePage() {
                     type="button" 
                     variant="outline" 
                     onClick={() => setShowEmailDialog(false)}
-                    className="bg-transparent border-gray-700 text-white hover:bg-gray-800 hover:text-white"
+                    className="bg-transparent border-gray-700 text-white hover:bg-[#192A38] hover:text-white"
                   >
                     Cancel
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={isLoading}
-                    className="bg-[#004346] hover:bg-[#00595d] text-white"
+                    disabled={isSubmittingEmail}
+                    className="bg-[#09BC8A] hover:bg-[#09BC8A]/90 text-[#192A38]"
                   >
-                    {isLoading ? 'Updating...' : 'Update Email'}
+                    {isSubmittingEmail ? (
+                      <div className="flex items-center">
+                        <LoadingSpinner size="sm" className="mr-2 text-[#192A38]" />
+                        <span>Updating...</span>
+                      </div>
+                    ) : (
+                      'Update Email'
+                    )}
                   </Button>
                 </DialogFooter>
               </form>
@@ -347,17 +488,17 @@ export default function ProfilePage() {
           </Dialog>
         )}
         
-        {/* Change Password Dialog */}
+        {/* Password Dialog */}
         {showPasswordDialog && (
           <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-            <DialogContent className="bg-[#2a2a2a] text-white border-gray-700 sm:max-w-[425px]">
+            <DialogContent className="bg-[#1e3446] text-white border-[#004346] sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Change Password</DialogTitle>
                 <DialogDescription className="text-gray-400">
                   Enter your current password and a new password.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handlePasswordSubmit}>
+              <form onSubmit={handleUpdatePassword}>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="currentPwd">Current Password</Label>
@@ -367,9 +508,10 @@ export default function ProfilePage() {
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Enter current password"
-                      className="bg-[#3a3a3a] border-gray-700 text-white"
+                      className="bg-[#192A38] border-gray-700 text-white"
                     />
                   </div>
+                  
                   <div className="grid gap-2">
                     <Label htmlFor="newPwd">New Password</Label>
                     <Input
@@ -378,9 +520,10 @@ export default function ProfilePage() {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Enter new password"
-                      className="bg-[#3a3a3a] border-gray-700 text-white"
+                      className="bg-[#192A38] border-gray-700 text-white"
                     />
                   </div>
+                  
                   <div className="grid gap-2">
                     <Label htmlFor="confirmPwd">Confirm New Password</Label>
                     <Input
@@ -389,13 +532,13 @@ export default function ProfilePage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm new password"
-                      className="bg-[#3a3a3a] border-gray-700 text-white"
+                      className="bg-[#192A38] border-gray-700 text-white"
                     />
                   </div>
                   
-                  {/* Error messages */}
+                  {/* Messages */}
                   {formErrors.length > 0 && (
-                    <div className="mt-2 p-3 rounded bg-red-900/30 border border-red-800">
+                    <div className="p-3 rounded bg-red-900/30 border border-red-800">
                       <div className="flex items-start">
                         <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
                         <div>
@@ -407,9 +550,8 @@ export default function ProfilePage() {
                     </div>
                   )}
                   
-                  {/* Success message */}
                   {successMessage && (
-                    <div className="mt-2 p-3 rounded bg-green-900/30 border border-green-800">
+                    <div className="p-3 rounded bg-green-900/30 border border-green-800">
                       <div className="flex items-center">
                         <Check className="h-5 w-5 text-green-500 mr-2" />
                         <p className="text-green-500 text-sm">{successMessage}</p>
@@ -422,16 +564,23 @@ export default function ProfilePage() {
                     type="button" 
                     variant="outline" 
                     onClick={() => setShowPasswordDialog(false)}
-                    className="bg-transparent border-gray-700 text-white hover:bg-gray-800 hover:text-white"
+                    className="bg-transparent border-gray-700 text-white hover:bg-[#192A38] hover:text-white"
                   >
                     Cancel
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={isLoading}
-                    className="bg-[#004346] hover:bg-[#00595d] text-white"
+                    disabled={isSubmittingPassword}
+                    className="bg-[#09BC8A] hover:bg-[#09BC8A]/90 text-[#192A38]"
                   >
-                    {isLoading ? 'Updating...' : 'Update Password'}
+                    {isSubmittingPassword ? (
+                      <div className="flex items-center">
+                        <LoadingSpinner size="sm" className="mr-2 text-[#192A38]" />
+                        <span>Updating...</span>
+                      </div>
+                    ) : (
+                      'Update Password'
+                    )}
                   </Button>
                 </DialogFooter>
               </form>
@@ -439,17 +588,17 @@ export default function ProfilePage() {
           </Dialog>
         )}
         
-        {/* Change Username Dialog */}
+        {/* Username Dialog */}
         {showUsernameDialog && (
           <Dialog open={showUsernameDialog} onOpenChange={setShowUsernameDialog}>
-            <DialogContent className="bg-[#2a2a2a] text-white border-gray-700 sm:max-w-[425px]">
+            <DialogContent className="bg-[#1e3446] text-white border-[#004346] sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Change Username</DialogTitle>
                 <DialogDescription className="text-gray-400">
                   Enter your new username.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleUsernameSubmit}>
+              <form onSubmit={handleUpdateUsername}>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="newUsername">New Username</Label>
@@ -459,13 +608,13 @@ export default function ProfilePage() {
                       value={newUsername}
                       onChange={(e) => setNewUsername(e.target.value)}
                       placeholder="Enter new username"
-                      className="bg-[#3a3a3a] border-gray-700 text-white"
+                      className="bg-[#192A38] border-gray-700 text-white"
                     />
                   </div>
                   
-                  {/* Error messages */}
+                  {/* Messages */}
                   {formErrors.length > 0 && (
-                    <div className="mt-2 p-3 rounded bg-red-900/30 border border-red-800">
+                    <div className="p-3 rounded bg-red-900/30 border border-red-800">
                       <div className="flex items-start">
                         <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
                         <div>
@@ -477,9 +626,8 @@ export default function ProfilePage() {
                     </div>
                   )}
                   
-                  {/* Success message */}
                   {successMessage && (
-                    <div className="mt-2 p-3 rounded bg-green-900/30 border border-green-800">
+                    <div className="p-3 rounded bg-green-900/30 border border-green-800">
                       <div className="flex items-center">
                         <Check className="h-5 w-5 text-green-500 mr-2" />
                         <p className="text-green-500 text-sm">{successMessage}</p>
@@ -492,16 +640,23 @@ export default function ProfilePage() {
                     type="button" 
                     variant="outline" 
                     onClick={() => setShowUsernameDialog(false)}
-                    className="bg-transparent border-gray-700 text-white hover:bg-gray-800 hover:text-white"
+                    className="bg-transparent border-gray-700 text-white hover:bg-[#192A38] hover:text-white"
                   >
                     Cancel
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={isLoading}
-                    className="bg-[#004346] hover:bg-[#00595d] text-white"
+                    disabled={isSubmittingUsername}
+                    className="bg-[#09BC8A] hover:bg-[#09BC8A]/90 text-[#192A38]"
                   >
-                    {isLoading ? 'Updating...' : 'Update Username'}
+                    {isSubmittingUsername ? (
+                      <div className="flex items-center">
+                        <LoadingSpinner size="sm" className="mr-2 text-[#192A38]" />
+                        <span>Updating...</span>
+                      </div>
+                    ) : (
+                      'Update Username'
+                    )}
                   </Button>
                 </DialogFooter>
               </form>

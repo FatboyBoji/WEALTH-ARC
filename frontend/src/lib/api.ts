@@ -115,4 +115,15 @@ export const changeUsername = async (newUsername: string) => {
   }
 };
 
+// Add a function to get user profile data
+export const getUserProfile = async () => {
+  try {
+    const response = await api.get('/auth/me');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    throw error;
+  }
+};
+
 export default api; 

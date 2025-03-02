@@ -56,10 +56,10 @@ export class BudgetController {
       }
 
       // Validate type
-      if (categoryData.type !== 'income' && categoryData.type !== 'expense') {
+      if (!['income', 'expense', 'mixed'].includes(categoryData.type)) {
         res.status(400).json({
           success: false,
-          message: 'Type must be either "income" or "expense"'
+          message: 'Type must be "income", "expense", or "mixed"'
         });
         return;
       }
@@ -167,9 +167,8 @@ export class BudgetController {
         return;
       }
 
-      // Extract month and year from query parameters if provided
-      const month = req.query.month ? parseInt(req.query.month as string) : undefined;
-      const year = req.query.year ? parseInt(req.query.year as string) : undefined;
+      const month = req.query.month ? parseInt(req.query.month as string) : new Date().getMonth() + 1;
+      const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
       
       const budgetItems = await this.budgetService.getBudgetItems(req.user.userId, month, year);
       

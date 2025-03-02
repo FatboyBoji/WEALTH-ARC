@@ -139,26 +139,17 @@ export const getInsights = async () => {
   }
 };
 
-export const updateTransaction = async (id: string, data: Partial<Transaction>) => {
-  try {
-    const response = await api.put(`/dashboard/transactions/${id}`, data);
-    return response.data.data as Transaction;
-  } catch (error) {
-    console.error('Error updating transaction:', error);
-    // Fall back to mock data when developing
-    if (mockTransactions) {
-      console.log('Using mock data for update');
-      // Find and update the transaction in mock data
-      const transactionIndex = mockTransactions.findIndex(t => t.id === id);
-      if (transactionIndex >= 0) {
-        const updatedTransaction = {
-          ...mockTransactions[transactionIndex],
-          ...data
-        };
-        mockTransactions[transactionIndex] = updatedTransaction;
-        return updatedTransaction;
-      }
-    }
-    throw error;
+export async function updateTransaction(
+  transactionId: string,
+  data: Partial<Transaction>
+): Promise<Transaction> {
+  console.log('Sending transaction update data:', JSON.stringify(data, null, 2));
+  
+  const response = await api.patch(`/dashboard/transactions/${transactionId}`, data);
+  
+  if (!response.data.success) {
+    throw new Error(response.data.message || 'Failed to update transaction');
   }
-}; 
+  
+  return response.data.data;
+} 

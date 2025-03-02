@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Check, AlertCircle } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface DesktopCategoryDialogProps {
   open: boolean; 
@@ -13,11 +14,11 @@ interface DesktopCategoryDialogProps {
   onSubmit: (e: React.FormEvent) => Promise<void>;
   formData: {
     name: string;
-    type: 'income' | 'expense';
+    type: 'income' | 'expense' | 'mixed';
   };
   setFormData: React.Dispatch<React.SetStateAction<{
     name: string;
-    type: 'income' | 'expense';
+    type: 'income' | 'expense' | 'mixed';
   }>>;
   formErrors: string[];
   successMessage: string;
@@ -37,7 +38,7 @@ export default function DesktopCategoryDialog({
       <DialogContent className="bg-[#192A38] text-white border-gray-700 rounded-xl">
         <DialogHeader>
           <DialogTitle>
-            Add {formData.type === 'income' ? 'Income' : 'Expense'} Category
+            Add {formData.type === 'income' ? 'Income' : formData.type === 'expense' ? 'Expense' : 'Mixed'} Category
           </DialogTitle>
         </DialogHeader>
         
@@ -52,6 +53,34 @@ export default function DesktopCategoryDialog({
                 className="bg-[#004346] border-none text-white rounded-xl"
                 placeholder="Enter category name"
               />
+            </div>
+            
+            <div className="space-y-4">
+              <Label className="text-[#F3FFFC] font-medium">Category Type</Label>
+              <RadioGroup 
+                value={formData.type} 
+                onValueChange={(value: string) => setFormData({...formData, type: value as 'income' | 'expense' | 'mixed'})}
+                className="flex flex-col gap-3"
+              >
+                <div className="flex items-center space-x-2 bg-[#004346]/50 p-3 rounded-lg">
+                  <RadioGroupItem value="income" id="desktop-income" className="text-[#09BC8A]" />
+                  <Label htmlFor="desktop-income" className="cursor-pointer font-normal text-[#F3FFFC]">
+                    Income Only
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 bg-[#004346]/50 p-3 rounded-lg">
+                  <RadioGroupItem value="expense" id="desktop-expense" className="text-[#09BC8A]" />
+                  <Label htmlFor="desktop-expense" className="cursor-pointer font-normal text-[#F3FFFC]">
+                    Expense Only
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 bg-[#004346]/50 p-3 rounded-lg">
+                  <RadioGroupItem value="mixed" id="desktop-mixed" className="text-[#09BC8A]" />
+                  <Label htmlFor="desktop-mixed" className="cursor-pointer font-normal text-[#F3FFFC]">
+                    Mixed (Both Income & Expenses)
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
             
             {/* Error messages */}

@@ -20,6 +20,7 @@ import WalletLoadingStates from '@/components/budget/walletPage/WalletLoadingSta
 import WalletContent from '@/components/budget/walletPage/WalletContent';
 import DesktopItemDialog from '@/components/budget/walletPage/DesktopItemDialog';
 import DesktopCategoryDialog from '@/components/budget/walletPage/DesktopCategoryDialog';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Month formatter
 const formatMonth = (month: number, year: number) => {
@@ -76,9 +77,12 @@ export default function WalletPage() {
     repeat: 1 // Default: No repeat
   });
   const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
-  const [newCategory, setNewCategory] = useState({
+  const [newCategory, setNewCategory] = useState<{
+    name: string;
+    type: 'income' | 'expense' | 'mixed';
+  }>({
     name: '',
-    type: 'expense' as 'income' | 'expense'
+    type: 'expense'
   });
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [successMessage, setSuccessMessage] = useState('');
@@ -178,10 +182,10 @@ export default function WalletPage() {
   };
   
   // Add new category
-  const handleAddCategory = (type: 'income' | 'expense' = 'expense') => {
+  const handleAddCategory = () => {
     setNewCategory({
       name: '',
-      type
+      type: 'expense' // Default to expense, but now it can be changed to 'mixed'
     });
     setFormErrors([]);
     setSuccessMessage('');
@@ -282,19 +286,29 @@ export default function WalletPage() {
     }
   };
   
-  // Prepare data for category lists
+  // Add a handler for category creation from the budget drawer
+  const handleCategoryCreatedFromBudget = (category: Category) => {
+    // Add the new category to the local state
+    setCategories(prev => [...prev, category]);
+    
+    // Show a temporary success message
+    setSuccessMessage('Category created and selected!');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
+  
+  // Prepare data for category lists - Update to handle mixed categories
   const incomeCategories = categories
-    .filter(cat => cat.type === 'income' && cat.isVisible)
+    .filter(cat => (cat.type === 'income' || cat.type === 'mixed') && cat.isVisible)
     .map(cat => ({
       ...cat,
-      items: budgetItems.filter(item => item.categoryId === cat.id)
+      items: budgetItems.filter(item => item.categoryId === cat.id && item.itemType === 'income')
     }));
     
   const expenseCategories = categories
-    .filter(cat => cat.type === 'expense' && cat.isVisible)
+    .filter(cat => (cat.type === 'expense' || cat.type === 'mixed') && cat.isVisible)
     .map(cat => ({
       ...cat,
-      items: budgetItems.filter(item => item.categoryId === cat.id)
+      items: budgetItems.filter(item => item.categoryId === cat.id && item.itemType === 'expense')
     }));
 
   return (
@@ -304,10 +318,29 @@ export default function WalletPage() {
         
         {!isLoading && !error && (
           <>
+            <div className="flex items-center justify-between mb-6">
+              <button 
+                onClick={() => handleMonthChange(-1)} 
+                className="p-2 rounded-full hover:bg-[#004346]/50"
+                aria-label="Previous month"
+              >
+                <ChevronLeft className="w-5 h-5 text-white" />
+              </button>
+              
+              <h2 className="text-xl font-medium text-white">
+                {formattedDate}
+              </h2>
+              
+              <button 
+                onClick={() => handleMonthChange(1)} 
+                className="p-2 rounded-full hover:bg-[#004346]/50"
+                aria-label="Next month"
+              >
+                <ChevronRight className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            
             <WalletContent 
-              formattedDate={formattedDate}
-              onPrevMonth={() => handleMonthChange(-1)}
-              onNextMonth={() => handleMonthChange(1)}
               summary={summary}
               incomeCategories={incomeCategories}
               expenseCategories={expenseCategories}
@@ -332,6 +365,7 @@ export default function WalletPage() {
                   setFormData={setNewItem}
                   formErrors={formErrors}
                   successMessage={successMessage}
+                  onCategoryCreated={handleCategoryCreatedFromBudget}
                 />
                 
                 <CategoryDrawer

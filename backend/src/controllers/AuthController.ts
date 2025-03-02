@@ -64,7 +64,8 @@ export class AuthController {
           user: {
             userId: result.user.id,
             username: result.user.username,
-            role: result.user.role
+            role: result.user.role,
+            email: result.user.email
           },
           tokens: result.tokens
         }

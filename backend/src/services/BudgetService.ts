@@ -3,7 +3,7 @@ import { BudgetItem, Category } from '@prisma/client';
 
 export interface CreateCategoryDto {
   name: string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'mixed';
   isDefault?: boolean;
 }
 
@@ -22,6 +22,11 @@ export interface BudgetSummary {
   totalExpenses: number;
   remainingBudget: number;
 }
+
+// Type for BudgetItem with Category
+type BudgetItemWithCategory = BudgetItem & {
+  category: Category;
+};
 
 export class BudgetService {
   // Create default categories for a new user
@@ -103,8 +108,8 @@ export class BudgetService {
       throw new Error('Invalid category');
     }
 
-    // Verify category type matches item type
-    if (category.type !== data.itemType) {
+    // Verify category type matches item type or is 'mixed'
+    if (category.type !== 'mixed' && category.type !== data.itemType) {
       throw new Error(`Category type (${category.type}) doesn't match item type (${data.itemType})`);
     }
 
@@ -123,19 +128,14 @@ export class BudgetService {
   }
 
   // Get budget items for a specific month/year
-  async getBudgetItems(userId: number, month?: number, year?: number): Promise<BudgetItem[]> {
-    const filters: any = { userId };
-    
-    if (month !== undefined) {
-      filters.month = month;
-    }
-    
-    if (year !== undefined) {
-      filters.year = year;
-    }
-
-    return await prisma.budgetItem.findMany({
-      where: filters,
+  async getBudgetItems(userId: number, month: number, year: number): Promise<BudgetItem[]> {
+    // Get items that match exactly this month/year (both one-time and recurring items)
+    const exactMonthItems = await prisma.budgetItem.findMany({
+      where: {
+        userId,
+        month,
+        year
+      },
       include: {
         category: true
       },
@@ -143,6 +143,13 @@ export class BudgetService {
         createdAt: 'desc'
       }
     });
+    
+    // Now get recurring items from previous months that should appear in this month
+    // These are items with repeat > 1 (monthly, quarterly, yearly)
+    const recurringItems = await this.getRecurringItemsForMonth(userId, month, year);
+    
+    // Combine and return all items
+    return [...exactMonthItems, ...recurringItems];
   }
 
   // Get budget summary for a specific month/year
@@ -214,5 +221,48 @@ export class BudgetService {
     await prisma.budgetItem.delete({
       where: { id: itemId }
     });
+  }
+
+  // Add this method to the BudgetService class
+  async getRecurringItemsForMonth(userId: number, month: number, year: number): Promise<BudgetItemWithCategory[]> {
+    // Find recurring items from previous months that should appear in the current month
+    const recurringItems = await prisma.budgetItem.findMany({
+      where: {
+        userId,
+        repeat: { gt: 1 }, // Items with repeat > 1 (monthly, quarterly, yearly)
+        // Either from previous months of the same year, or from previous years
+        OR: [
+          {
+            year,
+            month: { lt: month }
+          },
+          {
+            year: { lt: year }
+          }
+        ]
+      },
+      include: {
+        category: true
+      }
+    });
+    
+    // Filter items based on their repeat pattern
+    return recurringItems.filter(item => {
+      if (item.repeat === 2) {
+        // Monthly: Always include
+        return true;
+      } else if (item.repeat === 3) {
+        // Quarterly: Check if this is a matching quarter
+        const itemQuarter = Math.ceil(item.month / 3);
+        const targetQuarter = Math.ceil(month / 3);
+        const quarterDiff = (year - item.year) * 4 + (targetQuarter - itemQuarter);
+        return quarterDiff % 4 === 0;
+      } else if (item.repeat === 4) {
+        // Yearly: Check if month matches
+        return item.month === month;
+      }
+      
+      return false;
+    }) as BudgetItemWithCategory[];
   }
 } 

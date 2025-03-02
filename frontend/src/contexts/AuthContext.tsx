@@ -82,15 +82,24 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         try {
+          // Make sure we're getting complete user data including email
           const { data } = await api.get('/auth/me');
           
           if (data.success) {
-            setUser(data.data);
+            // Ensure email is included in the user object
+            setUser({
+              userId: data.data.userId,
+              username: data.data.username,
+              role: data.data.role,
+              email: data.data.email // Make sure email is explicitly set
+            });
+            console.log('User data loaded with email:', data.data.email);
           } else {
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
           }
         } catch (error) {
+          console.error('Error fetching user data:', error);
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
         }
@@ -108,7 +117,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     setError(null);
     
     try {
-      // Add more logging for debugging
       console.log('Attempting login with:', { username });
       
       const { data } = await api.post('/auth/login', { username, password });
@@ -120,8 +128,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         localStorage.setItem('accessToken', data.data.tokens.accessToken);
         localStorage.setItem('refreshToken', data.data.tokens.refreshToken);
         
-        // Set user from response data
-        setUser(data.data.user);
+        // Explicitly set user with all fields including email
+        setUser({
+          userId: data.data.user.userId,
+          username: data.data.user.username,
+          role: data.data.user.role,
+          email: data.data.user.email // Make sure email is explicitly included
+        });
         
         // Set auth header for future requests
         api.defaults.headers.common['Authorization'] = `Bearer ${data.data.tokens.accessToken}`;

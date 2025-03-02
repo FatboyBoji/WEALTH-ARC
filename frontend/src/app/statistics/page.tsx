@@ -6,7 +6,7 @@ import ProtectedLayout from '@/components/layout/ProtectedLayout';
 export default function StatisticsPage() {
   return (
     <ProtectedLayout>
-      <div className='ml-6 mr-6'>
+      <div className='ml-0 mr-0'>
         <div className="mb-6">
           <h1 className="text-2xl font-bold mb-2">Financial Statistics</h1>
           <p className="text-gray-300">Track your financial progress over time</p>
