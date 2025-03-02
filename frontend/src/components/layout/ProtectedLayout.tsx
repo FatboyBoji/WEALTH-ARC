@@ -39,14 +39,14 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#192A38] text-white">
-      <div className="md:flex h-full">
+      <div className="flex h-full">
         {/* Side navigation (hidden on mobile) */}
-        <div className="hidden md:block md:w-80 h-screen bg-[#172521] fixed">
+        <div className="hidden md:block md:w-80 h-screen bg-[#172521] fixed left-0 top-0 z-30">
           <SideNav />
         </div>
         
         {/* Mobile header (shown only on mobile) */}
-        <div className="md:hidden p-1 pt-2 top-0 left-0 w-full z-40 flex items-center justify-center ]">
+        <div className="md:hidden p-1 pt-2 fixed top-0 left-0 w-full z-40 flex items-center justify-center bg-[#004346]">
           <div className="flex items-center space-x-2">
             {/* Logo on the left - properly sized */}
             <div className="flex-shrink-0 w-auto h-auto">
@@ -59,14 +59,14 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
           </div>
         </div>
         
-        {/* Main content - with padding for mobile navbar and header */}
-        <main className="flex-1 p-6 md:ml-80-6 pb-28 overflow-auto min-h-screen">
+        {/* Main content - with correct margin for sidebar and padding for mobile navbar */}
+        <main className="flex-1 p-6 md:pl-6 md:ml-80 pt-16 md:pt-6 pb-28 overflow-auto min-h-screen w-full">
           <div key={pathname}>
             {children}
           </div>
         </main>
         
-        {/* Mobile navigation - fixed in place and not rerendered on route changes */}
+        {/* Mobile navigation - fixed in place */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
           <MobileNavbar />
         </div>

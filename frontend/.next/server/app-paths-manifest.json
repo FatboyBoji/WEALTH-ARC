@@ -1,7 +1,7 @@
 {
-  "/wallet/page": "app/wallet/page.js",
   "/statistics/page": "app/statistics/page.js",
+  "/wallet/page": "app/wallet/page.js",
   "/profile/page": "app/profile/page.js",
-  "/auth/login/page": "app/auth/login/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/dashboard/page": "app/dashboard/page.js",
+  "/auth/login/page": "app/auth/login/page.js"
 }

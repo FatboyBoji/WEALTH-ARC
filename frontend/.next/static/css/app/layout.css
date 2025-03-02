@@ -755,6 +755,9 @@ video {
 .z-50 {
   z-index: 50;
 }
+.z-30 {
+  z-index: 30;
+}
 .m-0 {
   margin: 0px;
 }
@@ -859,6 +862,12 @@ video {
 }
 .mt-auto {
   margin-top: auto;
+}
+.mr-24 {
+  margin-right: 6rem;
+}
+.ml-24 {
+  margin-left: 6rem;
 }
 .line-clamp-1 {
   overflow: hidden;
@@ -1663,6 +1672,9 @@ video {
 }
 .pt-6 {
   padding-top: 1.5rem;
+}
+.pt-16 {
+  padding-top: 4rem;
 }
 .text-left {
   text-align: left;
@@ -2823,6 +2835,10 @@ img, svg {
     margin-left: 16rem;
   }
 
+  .md\:ml-80 {
+    margin-left: 20rem;
+  }
+
   .md\:block {
     display: block;
   }
@@ -2865,6 +2881,10 @@ img, svg {
 
   .md\:pt-6 {
     padding-top: 1.5rem;
+  }
+
+  .md\:pl-6 {
+    padding-left: 1.5rem;
   }
 
   .md\:text-2xl {
