@@ -45,7 +45,7 @@ export default function ScrollToTop({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           onClick={scrollToTop}
-          className={`fixed ${isMobile ? 'bottom-20' : 'bottom-8'} right-8 p-3 rounded-full 
+          className={`fixed ${isMobile ? 'bottom-20' : 'bottom-8'} right-4 p-3 rounded-full 
                      bg-[#042A2B] hover:bg-[#62A87C] 
                      shadow-lg transition-all duration-300 hover:shadow-xl z-50
                      group flex items-center justify-center ${className}`}

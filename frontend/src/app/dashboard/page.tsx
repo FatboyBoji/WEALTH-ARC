@@ -43,6 +43,7 @@ import DesktopInsightDialog from '@/components/dashboard/DesktopInsightDialog';
 import BudgetDrawer from '@/components/budget/BudgetDrawer';
 import { toast } from 'sonner';
 import ScrollToTop from '@/components/ScrollToTop';
+import FloatingActionButton from '@/components/budget/walletPage/FloatingActionButton';
 
 // Add this interface near the top of the file with other imports
 interface NewBudgetItem {
@@ -331,7 +332,7 @@ export default function DashboardPage() {
         
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3 mb-8">
+        <div className="grid grid-cols-2 gap-3 mb-8" id="dashboard-quick-actions">
           <button 
             onClick={handleOpenIncomeDrawer}
             className="bg-[#004346] p-4 rounded-lg text-center hover:bg-[#00595d]"
@@ -575,6 +576,13 @@ export default function DashboardPage() {
         successMessage={successMessage || ''}
         isSubmitting={isSubmitting}
       />
+      <div className='mx-20 md:mx-20 lg:mx-20'>
+        <FloatingActionButton 
+          onAddIncome={() => handleOpenIncomeDrawer()}
+          onAddExpense={() => handleOpenExpenseDrawer()}
+          watchElementId="dashboard-quick-actions"
+        />
+      </div>
 
       {/* Scroll to Top Button with lower mobile threshold */}
       <ScrollToTop threshold={400} mobileThreshold={200} />

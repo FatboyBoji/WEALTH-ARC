@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Check, AlertCircle, Plus } from 'lucide-react';
-import { Category } from '@/lib/budgetApi';
+import { Category, createCategory } from '@/lib/budgetApi';
 import CategoryDrawer from './CategoryDrawer';
 
 interface BudgetDrawerProps {
@@ -99,43 +99,30 @@ export default function BudgetDrawer({
     }
     
     try {
-      const response = await fetch('/api/budget/categories', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: newCategory.name,
-          type: newCategory.type
-        }),
+      // Use the imported createCategory function instead of direct fetch
+      const createdCategory = await createCategory({
+        name: newCategory.name,
+        type: newCategory.type
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create category');
-      }
-      
-      const data = await response.json();
       
       setCategorySuccessMessage('Category created successfully!');
       
-      // Notify parent component
-      if (onCategoryCreated && data.data) {
-        onCategoryCreated(data.data);
-        
-        // Auto-select the new category
-        setFormData({
-          ...formData,
-          categoryId: data.data.id
-        });
+      // Call the callback if provided
+      if (onCategoryCreated) {
+        onCategoryCreated(createdCategory);
       }
       
-      // Close the category drawer after a delay
+      // Reset form and close after a delay
       setTimeout(() => {
+        setNewCategory({
+          name: '',
+          type: itemType
+        });
         setShowCategoryDrawer(false);
       }, 1500);
       
-    } catch (err) {
-      console.error('Error creating category:', err);
+    } catch (error) {
+      console.error('Error creating category:', error);
       setCategoryFormErrors(['Failed to create category. Please try again.']);
     }
   };
@@ -147,6 +134,7 @@ export default function BudgetDrawer({
         onOpenChange={onClose} 
         placement="bottom"
         classNames={{
+          closeButton: "hidden",
           backdrop: "bg-black/50 backdrop-blur-sm",
           base: "drawer-slide-up"
         }}
@@ -158,6 +146,29 @@ export default function BudgetDrawer({
                 <h2 className="text-2xl font-medium text-[#09BC8A] text-center">
                   Add {itemType === 'income' ? 'Income' : 'Expense'}
                 </h2>
+                <Button
+                  onClick={onClose}
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-4 top-6 text-gray-400 hover:text-white hover:bg-[#004346]/50 rounded-full"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-5 h-5"
+                  >
+                    <path d="M18 6 6 18"></path>
+                    <path d="m6 6 12 12"></path>
+                  </svg>
+                  <span className="sr-only">Close</span>
+                </Button>
               </DrawerHeader>
 
               <DrawerBody className="py-6 px-5">

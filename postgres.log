@@ -1,1 +1,5 @@
 
+2025-03-02 11:21:15.458 CET [25540] LOG:  Logausgabe wird an Logsammelprozess umgeleitet
+2025-03-02 11:21:15.458 CET [25540] TIPP:  Die weitere Logausgabe wird im Verzeichnis »log« erscheinen.
+2025-03-02 11:58:38.597 CET [34628] LOG:  Logausgabe wird an Logsammelprozess umgeleitet
+2025-03-02 11:58:38.597 CET [34628] TIPP:  Die weitere Logausgabe wird im Verzeichnis »log« erscheinen.

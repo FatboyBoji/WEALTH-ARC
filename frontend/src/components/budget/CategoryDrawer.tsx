@@ -44,7 +44,8 @@ export default function CategoryDrawer({
       placement="bottom"
       classNames={{
         backdrop: "bg-black/50 backdrop-blur-sm",
-        base: "drawer-slide-up"
+        base: "drawer-slide-up",
+        closeButton: "hidden",
       }}
     >
       <DrawerContent className="bg-[#192A38] text-white rounded-t-2xl max-h-[90vh]">
@@ -54,6 +55,29 @@ export default function CategoryDrawer({
               <h2 className="text-2xl font-medium text-[#09BC8A] text-center">
                 Add New Category
               </h2>
+                <Button
+                  onClick={onClose}
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-4 top-6 text-gray-400 hover:text-white hover:bg-[#004346]/50 rounded-full"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-5 h-5"
+                  >
+                    <path d="M18 6 6 18"></path>
+                    <path d="m6 6 12 12"></path>
+                  </svg>
+                  <span className="sr-only">Close</span>
+                </Button>
             </DrawerHeader>
 
             <DrawerBody className="py-6 px-5">

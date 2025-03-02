@@ -21,6 +21,10 @@ import WalletContent from '@/components/budget/walletPage/WalletContent';
 import DesktopItemDialog from '@/components/budget/walletPage/DesktopItemDialog';
 import DesktopCategoryDialog from '@/components/budget/walletPage/DesktopCategoryDialog';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import ScrollToTop from '@/components/ScrollToTop';
+import FloatingActionButton from '@/components/budget/walletPage/FloatingActionButton';
+import CategoryManagement from '@/components/budget/walletPage/CategoryManagement';
+import { Button } from '@/components/ui/button';
 
 // Month formatter
 const formatMonth = (month: number, year: number) => {
@@ -87,6 +91,12 @@ export default function WalletPage() {
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Add a state to toggle the category management section
+  const [showCategoryManagement, setShowCategoryManagement] = useState(false);
+
+  // Add a reference to track if categories have changed to force re-render
+  const [categoryUpdateCounter, setCategoryUpdateCounter] = useState(0);
+
   // Load data
   useEffect(() => {
     loadData();
@@ -95,14 +105,15 @@ export default function WalletPage() {
   const loadData = async () => {
     setIsLoading(true);
     setError(null);
+    
     try {
-      // Load categories
-      const categoriesData = await getCategories();
-      setCategories(categoriesData);
+      // Get all categories (visible and invisible)
+      const allCategories = await getCategories();
+      setCategories(allCategories);
       
-      // Setup initial collapsed state
+      // Setup initial collapsed state based on all categories
       const initialCollapsedState: Record<string, boolean> = {};
-      categoriesData.forEach(cat => {
+      allCategories.forEach(cat => {
         initialCollapsedState[cat.id] = false; // All sections expanded by default
       });
       setCollapsedSections(prevState => ({
@@ -120,7 +131,7 @@ export default function WalletPage() {
       setSummary(summaryData);
     } catch (err) {
       console.error('Error loading data:', err);
-      setError('Failed to load budget data. Please try again.');
+      setError('Failed to load wallet data. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -280,7 +291,7 @@ export default function WalletPage() {
           type: newCategory.type // Keep the current type selected
         });
       }, 1500);
-      } catch (err) {
+    } catch (err) {
       console.error('Error adding category:', err);
       setFormErrors(['Failed to add category. Please try again.']);
     }
@@ -296,7 +307,7 @@ export default function WalletPage() {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
   
-  // Prepare data for category lists - Update to handle mixed categories
+  // Keep the dynamic calculation of income and expense categories
   const incomeCategories = categories
     .filter(cat => (cat.type === 'income' || cat.type === 'mixed') && cat.isVisible)
     .map(cat => ({
@@ -310,6 +321,24 @@ export default function WalletPage() {
       ...cat,
       items: budgetItems.filter(item => item.categoryId === cat.id && item.itemType === 'expense')
     }));
+
+  // Add a helper function to refresh visible categories
+  const refreshVisibleCategories = () => {
+    // Keep the dynamic calculation of income and expense categories
+    // This is already in your code and works fine when category visibility changes
+    
+    // Force re-render of components that depend on categories
+    setCategoryUpdateCounter(prev => prev + 1);
+  };
+
+  // Modify the onCategoryUpdated callback
+  const handleCategoryUpdated = () => {
+    // First load all data from the server
+    loadData();
+    
+    // Then make sure the UI updates
+    refreshVisibleCategories();
+  };
 
   return (
     <ProtectedLayout>
@@ -341,6 +370,7 @@ export default function WalletPage() {
             </div>
             
             <WalletContent 
+              key={`wallet-content-${categoryUpdateCounter}`} // Force re-render when categories change
               summary={summary}
               incomeCategories={incomeCategories}
               expenseCategories={expenseCategories}
@@ -408,9 +438,46 @@ export default function WalletPage() {
                 />
               </>
             )}
+
+            {/* Add a button to toggle the category management section - with elegant border */}
+            <div className="mt-12 rounded-t-xl bg-[#192A38] border border-[#09BC8A]/20 shadow-inner shadow-[#09BC8A]/5 p-5">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold text-white flex items-center">
+                  <span className="inline-block h-4 w-1 bg-[#09BC8A] rounded-full mr-3"></span>
+                  Categories
+                </h3>
+                <Button 
+                  onClick={() => setShowCategoryManagement(!showCategoryManagement)}
+                  className="text-sm bg-[#004346] text-white hover:bg-[#005b5e] rounded-xl transition-all duration-200"
+                >
+                  {showCategoryManagement ? 'Hide Management' : 'Manage Categories'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Category Management Section - with matching border */}
+            <div className={`mb-20 rounded-b-xl bg-[#192A38] border-x border-b border-[#09BC8A]/20
+                          ${showCategoryManagement ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'} 
+                          transition-all duration-300 ease-in-out`}>
+              {showCategoryManagement && (
+                <div className="p-5">
+                  <CategoryManagement 
+                    categories={Array.from(new Map([...categories].map(cat => [cat.id, cat])).values())} 
+                    onCategoryUpdated={handleCategoryUpdated}
+                  />
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
+      <div className='mx-20 md:mx-20 lg:mx-20'>
+        <FloatingActionButton 
+          onAddIncome={() => handleAddItem('income')}
+          onAddExpense={() => handleAddItem('expense')}
+        />
+      </div>
+      <ScrollToTop threshold={400} mobileThreshold={200} />
     </ProtectedLayout>
   );
 } 

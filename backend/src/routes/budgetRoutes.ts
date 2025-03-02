@@ -20,4 +20,19 @@ router.delete('/items/:itemId', authenticateToken, (req, res) => budgetControlle
 // Budget summary route
 router.get('/summary', authenticateToken, (req, res) => budgetController.getBudgetSummary(req, res));
 
+// Delete a category
+router.delete('/categories/:id', authenticateToken, (req, res) => 
+  budgetController.deleteCategory(req, res)
+);
+
+// Update category visibility
+router.patch('/categories/:id/visibility', authenticateToken, (req, res) => 
+  budgetController.updateCategoryVisibility(req, res)
+);
+
+// Update category name
+router.patch('/categories/:id/name', authenticateToken, (req, res) => 
+  budgetController.updateCategoryName(req, res)
+);
+
 export default router; 

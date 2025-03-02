@@ -67,33 +67,78 @@ export class BudgetService {
   }
 
   // Update category visibility
-  async updateCategoryVisibility(userId: number, categoryId: string, isVisible: boolean): Promise<Category> {
-    return await prisma.category.update({
+  async updateCategoryVisibility(categoryId: string, userId: number, isVisible: boolean): Promise<Category> {
+    // Log for debugging
+    // console.log(`Updating visibility for category ${categoryId} to ${isVisible}`);
+    
+    // First find the category to make sure it exists and belongs to the user
+    const category = await prisma.category.findFirst({
       where: {
         id: categoryId,
         userId
+      }
+    });
+    
+    if (!category) {
+      throw new Error('Category not found or does not belong to user');
+    }
+    
+    // Use the verified categoryId from the found category
+    return await prisma.category.update({
+      where: {
+        id: category.id // Use category.id instead of categoryId to ensure it's defined
       },
-      data: { isVisible }
+      data: { 
+        isVisible 
+      }
     });
   }
 
   // Delete a category (and all its budget items)
-  async deleteCategory(userId: number, categoryId: string): Promise<void> {
-    // Only non-default categories can be deleted
-    const category = await prisma.category.findUnique({
-      where: { id: categoryId }
+  async deleteCategory(categoryId: string, userId: number, deleteItems: boolean = false): Promise<void> {
+    // First verify the category belongs to the user
+    const category = await prisma.category.findFirst({
+      where: {
+        id: categoryId,
+        userId
+      }
     });
 
-    if (!category || category.userId !== userId) {
-      throw new Error('Category not found');
+    if (!category) {
+      throw new Error('Category not found or does not belong to user');
     }
 
-    if (category.isDefault) {
-      throw new Error('Default categories cannot be deleted');
+    // Check if category has items
+    const itemCount = await prisma.budgetItem.count({
+      where: {
+        categoryId: category.id, // Use the verified category id
+        userId
+      }
+    });
+
+    if (itemCount > 0 && !deleteItems) {
+      throw new Error('CATEGORY_HAS_ITEMS');
     }
 
+    // If deleteItems is true, delete only the items in this category
+    if (deleteItems && itemCount > 0) {
+      console.log(`Deleting ${itemCount} items for category ${category.id}`);
+      
+      // Delete only items in this specific category
+      await prisma.budgetItem.deleteMany({
+        where: {
+          categoryId: category.id, // Use the verified category id
+          userId
+        }
+      });
+    }
+
+    // Now delete the category
+    console.log(`Deleting category ${category.id}`);
     await prisma.category.delete({
-      where: { id: categoryId }
+      where: {
+        id: category.id
+      }
     });
   }
 
@@ -264,5 +309,34 @@ export class BudgetService {
       
       return false;
     }) as BudgetItemWithCategory[];
+  }
+
+  async updateCategoryName(categoryId: string, userId: number, name: string): Promise<Category> {
+    // Verify the category belongs to the user
+    const category = await prisma.category.findFirst({
+      where: {
+        id: categoryId,
+        userId
+      }
+    });
+
+    if (!category) {
+      throw new Error('Category not found or does not belong to user');
+    }
+
+    // Check that name is not empty
+    if (!name.trim()) {
+      throw new Error('Category name cannot be empty');
+    }
+
+    // Update the name
+    return prisma.category.update({
+      where: {
+        id: categoryId
+      },
+      data: {
+        name
+      }
+    });
   }
 } 

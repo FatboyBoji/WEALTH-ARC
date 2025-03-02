@@ -81,34 +81,21 @@ export class BudgetController {
 
   async updateCategoryVisibility(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.user || !req.user.userId) {
-        res.status(401).json({
-          success: false,
-          message: 'Authentication required'
-        });
-        return;
-      }
-
+      const userId = req.user!.userId;
       const { categoryId } = req.params;
       const { isVisible } = req.body;
       
-      if (isVisible === undefined) {
-        res.status(400).json({
-          success: false,
-          message: 'isVisible field is required'
-        });
-        return;
-      }
-
-      const category = await this.budgetService.updateCategoryVisibility(
-        req.user.userId, 
+      console.log(`Controller: Updating category ${categoryId} visibility to ${isVisible}`);
+      
+      const updatedCategory = await this.budgetService.updateCategoryVisibility(
         categoryId,
-        Boolean(isVisible)
+        userId,
+        isVisible
       );
       
-      res.status(200).json({
+      res.json({
         success: true,
-        data: category
+        data: updatedCategory
       });
     } catch (error) {
       console.error('Error updating category visibility:', error);
@@ -121,34 +108,37 @@ export class BudgetController {
 
   async deleteCategory(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.user || !req.user.userId) {
+      const categoryId = req.params.id;
+      const userId = req.user?.userId;
+      const { deleteItems } = req.body;
+
+      if (!userId) {
         res.status(401).json({
           success: false,
-          message: 'Authentication required'
+          message: 'User not authenticated'
         });
         return;
       }
 
-      const { categoryId } = req.params;
-      
-      await this.budgetService.deleteCategory(req.user.userId, categoryId);
-      
-      res.status(200).json({
-        success: true,
-        message: 'Category deleted successfully'
-      });
-    } catch (error: any) {
-      console.error('Error deleting category:', error);
-      
-      // Handle specific error messages
-      if (error.message === 'Default categories cannot be deleted') {
-        res.status(400).json({
-          success: false,
-          message: error.message
+      try {
+        await this.budgetService.deleteCategory(categoryId, userId, deleteItems);
+        res.status(200).json({
+          success: true,
+          message: 'Category deleted successfully'
         });
-        return;
+      } catch (error: unknown) {
+        if (error instanceof Error && error.message === 'CATEGORY_HAS_ITEMS') {
+          res.status(400).json({
+            success: false,
+            message: 'Category has items. Please specify what to do with them.',
+            code: 'CATEGORY_HAS_ITEMS'
+          });
+        } else {
+          throw error;
+        }
       }
-      
+    } catch (error: unknown) {
+      console.error('Error deleting category:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to delete category'
@@ -359,6 +349,48 @@ export class BudgetController {
       res.status(500).json({
         success: false,
         message: 'Failed to get budget summary'
+      });
+    }
+  }
+
+  async updateCategoryName(req: Request, res: Response): Promise<void> {
+    try {
+      const categoryId = req.params.id;
+      const userId = req.user?.userId;
+      const { name } = req.body;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+        return;
+      }
+
+      if (!name || !name.trim()) {
+        res.status(400).json({
+          success: false,
+          message: 'Category name is required'
+        });
+        return;
+      }
+
+      const updatedCategory = await this.budgetService.updateCategoryName(
+        categoryId,
+        userId,
+        name
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Category name updated successfully',
+        data: updatedCategory
+      });
+    } catch (error) {
+      console.error('Error updating category name:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update category name'
       });
     }
   }

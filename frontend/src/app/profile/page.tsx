@@ -12,6 +12,7 @@ import { AlertCircle, Check, Mail, Key, User, FileText, Lock, Info, LogOut } fro
 import { validatePassword } from '@/utils/passwordPolicy';
 import api, { getUserProfile } from '@/lib/api';
 import LoadingSpinner from '@/components/ui/loading-spinner';
+import ProfileEditDrawer from '@/components/profile/ProfileEditDrawer';
 
 export default function ProfilePage() {
   const { user, logout, changeEmail, changePassword, changeUsername, isLoading, error } = useAuth();
@@ -40,6 +41,19 @@ export default function ProfilePage() {
   const [isSubmittingUsername, setIsSubmittingUsername] = useState(false);
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  
+  // Add a new state to track which drawer is open
+  const [activeDrawer, setActiveDrawer] = useState<'username' | 'email' | 'password' | null>(null);
+  
+  // Combine form states into a single object for the drawer
+  const [drawerFormData, setDrawerFormData] = useState({
+    newUsername: '',
+    newEmail: '',
+    emailPassword: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
   
   // Load user data
   useEffect(() => {
@@ -208,33 +222,90 @@ export default function ProfilePage() {
     router.push('/auth/login');
   };
   
-  // Update username handler
+  // Handlers for opening drawers
+  const handleOpenUsernameDrawer = () => {
+    setActiveDrawer('username');
+    setFormErrors([]);
+    setSuccessMessage('');
+    setDrawerFormData({
+      ...drawerFormData,
+      newUsername: ''
+    });
+  };
+  
+  const handleOpenEmailDrawer = () => {
+    setActiveDrawer('email');
+    setFormErrors([]);
+    setSuccessMessage('');
+    setDrawerFormData({
+      ...drawerFormData,
+      newEmail: '',
+      emailPassword: ''
+    });
+  };
+  
+  const handleOpenPasswordDrawer = () => {
+    setActiveDrawer('password');
+    setFormErrors([]);
+    setSuccessMessage('');
+    setDrawerFormData({
+      ...drawerFormData,
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+  };
+  
+  const handleCloseDrawer = () => {
+    setActiveDrawer(null);
+  };
+  
+  const handleDrawerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormErrors([]);
+    setSuccessMessage('');
+    
+    switch (activeDrawer) {
+      case 'username':
+        await handleUpdateUsername(e);
+        break;
+      case 'email':
+        await handleUpdateEmail(e);
+        break;
+      case 'password':
+        await handleUpdatePassword(e);
+        break;
+    }
+  };
+  
+  // Update handlers to use drawer form data
   const handleUpdateUsername = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormErrors([]);
     setSuccessMessage('');
-    setIsSubmittingUsername(true); // Start loading
+    setIsSubmittingUsername(true);
     
     try {
       // Validate
-      if (!newUsername.trim()) {
+      if (!drawerFormData.newUsername?.trim()) {
         setFormErrors(['Username cannot be empty']);
         setIsSubmittingUsername(false);
         return;
       }
       
-      if (newUsername.length < 3) {
+      if (drawerFormData.newUsername.length < 3) {
         setFormErrors(['Username must be at least 3 characters long']);
         setIsSubmittingUsername(false);
         return;
       }
       
-      await changeUsername(newUsername);
+      await changeUsername(drawerFormData.newUsername);
       setSuccessMessage('Username updated successfully');
       
       setTimeout(() => {
         setIsSubmittingUsername(false);
-      }, 1000);
+        setActiveDrawer(null);
+      }, 1500);
       
     } catch (error: any) {
       setFormErrors([error.message || 'Failed to update username']);
@@ -242,26 +313,43 @@ export default function ProfilePage() {
     }
   };
   
-  // Similarly update email and password handlers...
   const handleUpdateEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormErrors([]);
     setSuccessMessage('');
-    setIsSubmittingEmail(true); // Start loading
+    setIsSubmittingEmail(true);
     
     try {
-      // Form validation...
+      if (!drawerFormData.newEmail) {
+        setFormErrors(['Please enter a new email address']);
+        setIsSubmittingEmail(false);
+        return;
+      }
       
-      await changeEmail(newEmail, emailPassword);
+      if (!drawerFormData.emailPassword) {
+        setFormErrors(['Please enter your current password']);
+        setIsSubmittingEmail(false);
+        return;
+      }
       
-      setSuccessMessage('Email updated successfully');
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(drawerFormData.newEmail)) {
+        setFormErrors(['Please enter a valid email address']);
+        setIsSubmittingEmail(false);
+        return;
+      }
+      
+      await changeEmail(drawerFormData.newEmail, drawerFormData.emailPassword);
+      setSuccessMessage('Email updated successfully!');
       
       setTimeout(() => {
         setIsSubmittingEmail(false);
-      }, 1000);
+        setActiveDrawer(null);
+      }, 1500);
       
     } catch (error: any) {
-      setFormErrors([error.message || 'Failed to update email']);
+      setFormErrors([error?.response?.data?.message || 'Failed to update email']);
       setIsSubmittingEmail(false);
     }
   };
@@ -270,28 +358,54 @@ export default function ProfilePage() {
     e.preventDefault();
     setFormErrors([]);
     setSuccessMessage('');
-    setIsSubmittingPassword(true); // Start loading
+    setIsSubmittingPassword(true);
     
     try {
-      // Form validation...
+      if (!drawerFormData.currentPassword) {
+        setFormErrors(['Please enter your current password']);
+        setIsSubmittingPassword(false);
+        return;
+      }
       
-      await changePassword(currentPassword, newPassword);
+      if (!drawerFormData.newPassword) {
+        setFormErrors(['Please enter a new password']);
+        setIsSubmittingPassword(false);
+        return;
+      }
       
-      setSuccessMessage('Password updated successfully');
+      if (drawerFormData.newPassword !== drawerFormData.confirmPassword) {
+        setFormErrors(['Passwords do not match']);
+        setIsSubmittingPassword(false);
+        return;
+      }
+      
+      // Password policy validation
+      const passwordErrors = validatePassword(drawerFormData.newPassword);
+      if (passwordErrors.length > 0) {
+        setFormErrors(passwordErrors);
+        setIsSubmittingPassword(false);
+        return;
+      }
+      
+      await changePassword(drawerFormData.currentPassword, drawerFormData.newPassword);
+      setSuccessMessage('Password updated successfully! You will be logged out.');
       
       setTimeout(() => {
         setIsSubmittingPassword(false);
-      }, 1000);
+        setActiveDrawer(null);
+        // Optionally trigger logout here
+        logout();
+      }, 2000);
       
     } catch (error: any) {
-      setFormErrors([error.message || 'Failed to update password']);
+      setFormErrors([error?.response?.data?.message || 'Failed to update password']);
       setIsSubmittingPassword(false);
     }
   };
   
   return (
     <ProtectedLayout>
-      <div className="w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-6 space-y-6">
+      <div className="">
         {/* Header */}
         <div className="border-b border-[#09BC8A]/30 pb-4">
           <h1 className="text-2xl font-bold">Account Settings</h1>
@@ -334,7 +448,7 @@ export default function ProfilePage() {
                 
                 <div className="flex flex-col sm:flex-row w-full gap-3">
                   <button 
-                    onClick={handleOpenUsernameDialog}
+                    onClick={handleOpenUsernameDrawer}
                     className="flex items-center justify-center flex-1 px-4 py-3 text-sm font-medium rounded-md border border-[#09BC8A]/30 hover:bg-[#09BC8A]/10 transition-colors text-[#F3FFFC]"
                   >
                     <User className="h-4 w-4 mr-2" />
@@ -342,7 +456,7 @@ export default function ProfilePage() {
                   </button>
                   
                   <button 
-                    onClick={handleOpenEmailDialog}
+                    onClick={handleOpenEmailDrawer}
                     className="flex items-center justify-center flex-1 px-4 py-3 text-sm font-medium rounded-md border border-[#09BC8A]/30 hover:bg-[#09BC8A]/10 transition-colors text-[#F3FFFC]"
                   >
                     <Mail className="h-4 w-4 mr-2" />
@@ -362,14 +476,14 @@ export default function ProfilePage() {
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Key className="h-5 w-5 text-[#09BC8A] mr-3" />
+                  <Key className="h-5 w-8 text-[#09BC8A] mr-3" />
                   <div>
                     <h3 className="text-base font-medium">Password</h3>
                   </div>
                 </div>
                 <button 
-                  onClick={handleOpenPasswordDialog}
-                  className="px-16 py-4 text-sm font-medium rounded-lg bg-transparent border border-[#09BC8A]/50 hover:bg-[#09BC8A]/10 transition-colors text-[#F3FFFC]"
+                  onClick={handleOpenPasswordDrawer}
+                  className="px-16 ml-2 py-4 text-sm font-medium rounded-lg bg-transparent border border-[#09BC8A]/50 hover:bg-[#09BC8A]/10 transition-colors text-[#F3FFFC]"
                 >
                   Change
                 </button>
@@ -400,269 +514,22 @@ export default function ProfilePage() {
           </div>
         </section>
         
-        {/* Email Dialog */}
-        {showEmailDialog && (
-          <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
-            <DialogContent className="bg-[#1e3446] text-white border-[#004346] sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Change Email</DialogTitle>
-                <DialogDescription className="text-gray-400">
-                  Enter your new email address and current password.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleUpdateEmail}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="newEmail">New Email</Label>
-                    <Input
-                      id="newEmail"
-                      type="email"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder="Enter new email address"
-                      className="bg-[#192A38] border-gray-700 text-white"
-                    />
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="currentPassword">Current Password</Label>
-                    <Input
-                      id="currentPassword"
-                      type="password"
-                      value={emailPassword}
-                      onChange={(e) => setEmailPassword(e.target.value)}
-                      placeholder="Enter your current password"
-                      className="bg-[#192A38] border-gray-700 text-white"
-                    />
-                  </div>
-                  
-                  {/* Messages */}
-                  {formErrors.length > 0 && (
-                    <div className="p-3 rounded bg-red-900/30 border border-red-800">
-                      <div className="flex items-start">
-                        <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
-                        <div>
-                          {formErrors.map((err, index) => (
-                            <p key={index} className="text-red-500 text-sm">{err}</p>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {successMessage && (
-                    <div className="p-3 rounded bg-green-900/30 border border-green-800">
-                      <div className="flex items-center">
-                        <Check className="h-5 w-5 text-green-500 mr-2" />
-                        <p className="text-green-500 text-sm">{successMessage}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowEmailDialog(false)}
-                    className="bg-transparent border-gray-700 text-white hover:bg-[#192A38] hover:text-white"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmittingEmail}
-                    className="bg-[#09BC8A] hover:bg-[#09BC8A]/90 text-[#192A38]"
-                  >
-                    {isSubmittingEmail ? (
-                      <div className="flex items-center">
-                        <LoadingSpinner size="sm" className="mr-2 text-[#192A38]" />
-                        <span>Updating...</span>
-                      </div>
-                    ) : (
-                      'Update Email'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
-        
-        {/* Password Dialog */}
-        {showPasswordDialog && (
-          <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-            <DialogContent className="bg-[#1e3446] text-white border-[#004346] sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Change Password</DialogTitle>
-                <DialogDescription className="text-gray-400">
-                  Enter your current password and a new password.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleUpdatePassword}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="currentPwd">Current Password</Label>
-                    <Input
-                      id="currentPwd"
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Enter current password"
-                      className="bg-[#192A38] border-gray-700 text-white"
-                    />
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="newPwd">New Password</Label>
-                    <Input
-                      id="newPwd"
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter new password"
-                      className="bg-[#192A38] border-gray-700 text-white"
-                    />
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label htmlFor="confirmPwd">Confirm New Password</Label>
-                    <Input
-                      id="confirmPwd"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                      className="bg-[#192A38] border-gray-700 text-white"
-                    />
-                  </div>
-                  
-                  {/* Messages */}
-                  {formErrors.length > 0 && (
-                    <div className="p-3 rounded bg-red-900/30 border border-red-800">
-                      <div className="flex items-start">
-                        <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
-                        <div>
-                          {formErrors.map((err, index) => (
-                            <p key={index} className="text-red-500 text-sm">{err}</p>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {successMessage && (
-                    <div className="p-3 rounded bg-green-900/30 border border-green-800">
-                      <div className="flex items-center">
-                        <Check className="h-5 w-5 text-green-500 mr-2" />
-                        <p className="text-green-500 text-sm">{successMessage}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowPasswordDialog(false)}
-                    className="bg-transparent border-gray-700 text-white hover:bg-[#192A38] hover:text-white"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmittingPassword}
-                    className="bg-[#09BC8A] hover:bg-[#09BC8A]/90 text-[#192A38]"
-                  >
-                    {isSubmittingPassword ? (
-                      <div className="flex items-center">
-                        <LoadingSpinner size="sm" className="mr-2 text-[#192A38]" />
-                        <span>Updating...</span>
-                      </div>
-                    ) : (
-                      'Update Password'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
-        
-        {/* Username Dialog */}
-        {showUsernameDialog && (
-          <Dialog open={showUsernameDialog} onOpenChange={setShowUsernameDialog}>
-            <DialogContent className="bg-[#1e3446] text-white border-[#004346] sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Change Username</DialogTitle>
-                <DialogDescription className="text-gray-400">
-                  Enter your new username.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleUpdateUsername}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="newUsername">New Username</Label>
-                    <Input
-                      id="newUsername"
-                      type="text"
-                      value={newUsername}
-                      onChange={(e) => setNewUsername(e.target.value)}
-                      placeholder="Enter new username"
-                      className="bg-[#192A38] border-gray-700 text-white"
-                    />
-                  </div>
-                  
-                  {/* Messages */}
-                  {formErrors.length > 0 && (
-                    <div className="p-3 rounded bg-red-900/30 border border-red-800">
-                      <div className="flex items-start">
-                        <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
-                        <div>
-                          {formErrors.map((err, index) => (
-                            <p key={index} className="text-red-500 text-sm">{err}</p>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {successMessage && (
-                    <div className="p-3 rounded bg-green-900/30 border border-green-800">
-                      <div className="flex items-center">
-                        <Check className="h-5 w-5 text-green-500 mr-2" />
-                        <p className="text-green-500 text-sm">{successMessage}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowUsernameDialog(false)}
-                    className="bg-transparent border-gray-700 text-white hover:bg-[#192A38] hover:text-white"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmittingUsername}
-                    className="bg-[#09BC8A] hover:bg-[#09BC8A]/90 text-[#192A38]"
-                  >
-                    {isSubmittingUsername ? (
-                      <div className="flex items-center">
-                        <LoadingSpinner size="sm" className="mr-2 text-[#192A38]" />
-                        <span>Updating...</span>
-                      </div>
-                    ) : (
-                      'Update Username'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
+        {/* Profile Edit Drawer */}
+        <ProfileEditDrawer
+          isOpen={activeDrawer !== null}
+          onClose={handleCloseDrawer}
+          onSubmit={handleDrawerSubmit}
+          editType={activeDrawer || 'username'}
+          formData={drawerFormData}
+          setFormData={setDrawerFormData}
+          formErrors={formErrors}
+          successMessage={successMessage}
+          isSubmitting={
+            (activeDrawer === 'username' && isSubmittingUsername) || 
+            (activeDrawer === 'email' && isSubmittingEmail) || 
+            (activeDrawer === 'password' && isSubmittingPassword)
+          }
+        />
       </div>
     </ProtectedLayout>
   );

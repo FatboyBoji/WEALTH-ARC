@@ -55,12 +55,32 @@ export const createCategory = async (categoryData: CreateCategoryDto) => {
 };
 
 export const updateCategoryVisibility = async (categoryId: string, isVisible: boolean) => {
-  const response = await api.patch(`/budget/categories/${categoryId}/visibility`, { isVisible });
-  return response.data.data as Category;
+  try {
+    // console.log(`API call: Setting category ${categoryId} visibility to ${isVisible}`);
+    const response = await api.patch(`/budget/categories/${categoryId}/visibility`, { isVisible });
+    return response.data.data as Category;
+  } catch (error) {
+    console.error('API Error in updateCategoryVisibility:', error);
+    throw error;
+  }
 };
 
-export const deleteCategory = async (categoryId: string) => {
-  await api.delete(`/budget/categories/${categoryId}`);
+export const deleteCategory = async (categoryId: string, deleteItems: boolean = false) => {
+  try {
+    const response = await api.delete(`/budget/categories/${categoryId}`, {
+      data: { deleteItems }
+    });
+    return response.data;
+  } catch (error) {
+    // Rethrow the error with any response data intact
+    console.error('API Error in deleteCategory:', error);
+    throw error;
+  }
+};
+
+export const updateCategoryName = async (categoryId: string, name: string) => {
+  const response = await api.patch(`/budget/categories/${categoryId}/name`, { name });
+  return response.data.data as Category;
 };
 
 // Budget item API calls
