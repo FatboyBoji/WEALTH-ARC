@@ -74,25 +74,25 @@ export default function FloatingActionButton({
                 <>
                   <motion.button
                     onClick={handleAddIncome}
-                    className="absolute right-16 bottom-0 flex items-center gap-2 bg-[#09BC8A] text-[#192A38] py-2 px-4 rounded-xl font-medium shadow-lg"
+                    className="absolute right-12 bottom-14 flex items-center gap-2 bg-[#09BC8A] text-[#192A38] py-2 px-4 rounded-xl font-medium shadow-lg"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <TrendingUp className="w-4 h-4" />
+                    <TrendingUp className="w-8 h-8" />
                     <span>Income</span>
                   </motion.button>
                   
                   <motion.button
                     onClick={handleAddExpense}
-                    className="absolute left-16 bottom-0 flex items-center gap-2 bg-[#212121] text-white py-2 px-4 rounded-xl font-medium shadow-lg"
+                    className="absolute left-12 bottom-14 flex items-center gap-2 bg-[#212121] text-white py-2 px-4 rounded-xl font-medium shadow-lg"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <TrendingDown className="w-4 h-4" />
+                    <TrendingDown className="w-8 h-8" />
                     <span>Expense</span>
                   </motion.button>
                 </>

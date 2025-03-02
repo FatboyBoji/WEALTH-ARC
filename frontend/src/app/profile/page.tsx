@@ -414,7 +414,7 @@ export default function ProfilePage() {
         
         {/* Profile Information */}
         <section>
-          <h2 className="text-lg font-medium mb-4 text-[#F3FFFC]">Profile Information</h2>
+          <h2 className="text-lg font-medium mt-8 mb-4 text-[#F3FFFC]">Profile Information</h2>
           
           <div className="bg-[#192A38] rounded-xl overflow-hidden border border-[#09BC8A]/40 shadow-xl">
             <div className="flex flex-row items-start p-6">

@@ -93,6 +93,8 @@ export default function WalletPage() {
 
   // Add a state to toggle the category management section
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
+  // Add a ref to store the previous scroll position
+  const [prevScrollPosition, setPrevScrollPosition] = useState(0);
 
   // Add a reference to track if categories have changed to force re-render
   const [categoryUpdateCounter, setCategoryUpdateCounter] = useState(0);
@@ -340,6 +342,36 @@ export default function WalletPage() {
     refreshVisibleCategories();
   };
 
+  // Add a function to handle toggling category management with scroll behavior
+  const handleToggleCategoryManagement = () => {
+    if (!showCategoryManagement) {
+      // Store current scroll position before opening
+      setPrevScrollPosition(window.scrollY);
+      
+      // Toggle the state to show the section
+      setShowCategoryManagement(true);
+      
+      // After the state updates and component renders, scroll to the management section
+      setTimeout(() => {
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
+    } else {
+      // First close the section
+      setShowCategoryManagement(false);
+      
+      // Wait for the closing animation to complete before scrolling back
+      setTimeout(() => {
+        window.scrollTo({
+          top: prevScrollPosition,
+          behavior: 'smooth'
+        });
+      }, 1000); // Reduced from 350ms to make it feel more responsive
+    }
+  };
+
   return (
     <ProtectedLayout>
       <div className="max-w-4xl mx-auto">
@@ -447,7 +479,7 @@ export default function WalletPage() {
                   Categories
                 </h3>
                 <Button 
-                  onClick={() => setShowCategoryManagement(!showCategoryManagement)}
+                  onClick={handleToggleCategoryManagement}
                   className="text-sm bg-[#004346] text-white hover:bg-[#005b5e] rounded-xl transition-all duration-200"
                 >
                   {showCategoryManagement ? 'Hide Management' : 'Manage Categories'}
@@ -457,8 +489,10 @@ export default function WalletPage() {
 
             {/* Category Management Section - with matching border */}
             <div className={`mb-20 rounded-b-xl bg-[#192A38] border-x border-b border-[#09BC8A]/20
-                          ${showCategoryManagement ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'} 
-                          transition-all duration-300 ease-in-out`}>
+                          ${showCategoryManagement 
+                            ? 'max-h-[2000px] opacity-100' 
+                            : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'} 
+                          transition-all duration-500 ease-in-out`}>
               {showCategoryManagement && (
                 <div className="p-5">
                   <CategoryManagement 
