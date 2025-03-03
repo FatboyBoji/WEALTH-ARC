@@ -8,6 +8,7 @@ import budgetRoutes from './routes/budgetRoutes';
 import adminRoutes from './routes/adminRoutes';
 import userRoutes from './routes/userRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
+import statisticsRoutes from './routes/statisticsRoutes';
 import { prisma } from './utils/db';
 
 // Load environment variables
@@ -57,6 +58,7 @@ app.use('/api/budget', budgetRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/statistics', statisticsRoutes);
 
 // Add a test endpoint
 

@@ -117,4 +117,17 @@ export const getBudgetSummary = async (month?: number, year?: number) => {
   
   const response = await api.get('/budget/summary', { params });
   return response.data.data as BudgetSummary;
-}; 
+};
+
+/**
+ * Fetch all budget items for a specific month and year
+ */
+export async function fetchBudgetItems(month: number, year: number) {
+  try {
+    const response = await api.get(`/budget/items?month=${month}&year=${year}`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching budget items:', error);
+    throw error;
+  }
+} 

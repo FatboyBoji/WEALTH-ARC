@@ -19,7 +19,7 @@ export default function HomePage() {
             Simple, effective budgeting for a more secure financial future
           </p>
           <button 
-            onClick={() => router.push('/auth/login')} 
+            onClick={() => router.push('/dashboard')} 
             className="bg-[#09BC8A] text-[#192A38] font-bold py-3 px-8 rounded-lg text-lg hover:bg-opacity-90 transition-all"
           >
             Get Started

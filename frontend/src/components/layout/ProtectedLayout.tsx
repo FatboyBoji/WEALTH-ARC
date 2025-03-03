@@ -39,14 +39,14 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#192A38] text-white">
-      <div className="flex h-full">
+      <div className="flex flex-col md:flex-row h-full">
         {/* Side navigation (hidden on mobile) */}
         <div className="hidden md:block md:w-80 h-screen bg-[#172521] fixed left-0 top-0 z-30">
           <SideNav />
         </div>
         
-        {/* Mobile header (shown only on mobile) */}
-        <div className="md:hidden p-1 pt-2 fixed top-0 left-0 w-full z-40 flex items-center justify-center bg-[#004346]">
+        {/* Mobile header (shown only on mobile) - removed fixed and background */}
+        <div className="md:hidden p-4 w-full z-40 flex items-center justify-center">
           <div className="flex items-center space-x-2">
             {/* Logo on the left - properly sized */}
             <div className="flex-shrink-0 w-auto h-auto">
@@ -59,8 +59,8 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = ({ children }) => {
           </div>
         </div>
         
-        {/* Main content - with correct margin for sidebar and padding for mobile navbar */}
-        <main className="flex-1 p-6 md:pl-6 md:ml-80 pt-16 md:pt-6 pb-28 overflow-auto min-h-screen w-full">
+        {/* Main content - adjusted padding for mobile */}
+        <main className="flex-1 p-6 md:pl-6 md:ml-80 md:pt-6 pb-28 overflow-auto min-h-screen w-full">
           <div key={pathname}>
             {children}
           </div>

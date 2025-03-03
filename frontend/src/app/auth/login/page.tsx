@@ -120,6 +120,12 @@ function LoginForm() {
               Register here
             </Link>
           </div>
+
+          <div className="mt-2 text-center text-sm text-[#F3FFFC]">
+            <Link href="/auth/forgot-password" className="font-medium text-[#09BC8A] hover:text-[#09BC8A]/80 hover:underline transition-colors duration-200">
+              Forgotten password?
+            </Link>
+          </div>
         </form>
         
         <div className="pt-4 text-center">
