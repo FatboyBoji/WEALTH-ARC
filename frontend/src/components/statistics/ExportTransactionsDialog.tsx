@@ -11,13 +11,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DownloadIcon, Loader2 } from 'lucide-react';
-import { exportTransactionsToCSV, TransactionForExport } from '@/lib/exportUtils';
+import { exportTransactionsToCSV } from '@/lib/exportUtils';
 import { fetchBudgetItems, BudgetItem } from '@/lib/budgetApi';
 import { Label } from '@/components/ui/label';
 
 interface ExportTransactionsDialogProps {
   trigger?: React.ReactNode;
   year: number;
+}
+
+// Define the correct type for transactions
+interface TransactionForExport {
+  date: string;
+  type: "income" | "expense";  // Explicitly limit to these two types
+  name: string;
+  amount: number;
+  category?: string;
 }
 
 export function ExportTransactionsDialog({ trigger, year }: ExportTransactionsDialogProps) {
@@ -40,7 +49,7 @@ export function ExportTransactionsDialog({ trigger, year }: ExportTransactionsDi
       // Convert budget items to transaction format
       const transactions: TransactionForExport[] = items.map((item: BudgetItem) => ({
         date: new Date(year, parseInt(selectedMonth) - 1, 15).toISOString(),
-        type: item.itemType,
+        type: item.itemType as "income" | "expense", // Cast to the valid type
         name: item.name,
         amount: item.amount,
         category: item.category?.name
@@ -65,10 +74,6 @@ export function ExportTransactionsDialog({ trigger, year }: ExportTransactionsDi
     }
   };
 
-  const handleClose = () => {
-    setIsOpen(false);
-  };
-
   // Create button that opens the drawer
   const triggerButton = trigger || (
     <Button className="bg-[#09BC8A] hover:bg-[#07a176] text-white">
@@ -87,7 +92,11 @@ export function ExportTransactionsDialog({ trigger, year }: ExportTransactionsDi
       {/* Export Drawer */}
       <Drawer 
         isOpen={isOpen} 
-        onOpenChange={handleClose} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsOpen(false);
+          }
+        }}
         placement="bottom"
         classNames={{
           closeButton: "hidden",
@@ -95,7 +104,9 @@ export function ExportTransactionsDialog({ trigger, year }: ExportTransactionsDi
           base: "drawer-slide-up"
         }}
       >
-        <DrawerContent className="bg-[#192A38] text-white rounded-t-2xl max-h-[90vh]">
+        <DrawerContent 
+          className="bg-[#192A38] text-white rounded-t-2xl max-h-[90vh]"
+        >
           {() => (
             <>
               <DrawerHeader className="border-b border-gray-700/30 pb-4 pt-6">
@@ -103,7 +114,7 @@ export function ExportTransactionsDialog({ trigger, year }: ExportTransactionsDi
                   Export Transactions
                 </h2>
                 <Button
-                  onClick={handleClose}
+                  onClick={() => setIsOpen(false)}
                   variant="ghost"
                   size="icon"
                   className="absolute right-4 top-6 text-gray-400 hover:text-white hover:bg-[#004346]/50 rounded-full"
@@ -132,21 +143,27 @@ export function ExportTransactionsDialog({ trigger, year }: ExportTransactionsDi
                   <Label htmlFor="monthSelect" className="text-[#F3FFFC] font-medium">
                     Select Month to Export
                   </Label>
-                  <Select
-                    value={selectedMonth}
-                    onValueChange={setSelectedMonth}
-                  >
-                    <SelectTrigger id="monthSelect" className="bg-[#004346] border-none text-white h-14 rounded-xl shadow-sm focus:ring-[#09BC8A] focus:ring-1">
-                      <SelectValue placeholder="Select month" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  
+                  {/* Simple Select implementation */}
+                  <div className="relative">
+                    <select 
+                      id="monthSelect"
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      className="bg-[#004346] border-none text-white h-14 w-full rounded-xl shadow-sm focus:ring-[#09BC8A] focus:ring-1 appearance-none px-4 cursor-pointer"
+                    >
                       {monthNames.map((month, index) => (
-                        <SelectItem key={index + 1} value={(index + 1).toString()}>
+                        <option key={index + 1} value={(index + 1).toString()}>
                           {month}
-                        </SelectItem>
+                        </option>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                        <path d="m6 9 6 6 6-6"/>
+                      </svg>
+                    </div>
+                  </div>
                   
                   <p className="text-gray-400 text-sm mt-2">
                     This will export all transactions for {monthNames[parseInt(selectedMonth) - 1]} {year} as a CSV file.
@@ -158,7 +175,7 @@ export function ExportTransactionsDialog({ trigger, year }: ExportTransactionsDi
                 <div className="grid grid-cols-2 gap-4 w-full">
                   <Button 
                     type="button" 
-                    onClick={handleClose}
+                    onClick={() => setIsOpen(false)}
                     className="bg-[#212121] border-none text-white hover:bg-[#2d2d2d] rounded-xl h-14 font-medium"
                   >
                     Cancel
