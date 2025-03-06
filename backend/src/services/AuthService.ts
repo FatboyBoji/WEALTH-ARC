@@ -26,7 +26,7 @@ export class AuthService {
         throw new Error('Invalid email format');
       }
       
-      // Validate password against policy
+      // Validate password policy
       const passwordErrors = PasswordPolicyService.validatePassword(userData.password);
       if (passwordErrors.length > 0) {
         throw new Error(passwordErrors.join(', '));
@@ -69,7 +69,7 @@ export class AuthService {
           email: userData.email,
           passwordHash,
           isActive: true,
-          maxSessionCount: defaultSessionLimit // Use the default session limit
+          maxSessionCount: defaultSessionLimit 
         }
       });
       
@@ -92,22 +92,22 @@ export class AuthService {
 
   async login(credentials: UserCredentials, userAgent?: string, ipAddress?: string): Promise<{ user: User; tokens: AuthTokens }> {
     try {
-      console.log('AuthService login attempt:', credentials.username);
+      // console.log('AuthService login attempt:', credentials.username);
       
       const rateIdentifier = `${credentials.username}:${ipAddress}`;
       
       // Rate limiting check
       this.rateLimiter.checkRateLimit(rateIdentifier);
 
-      // Find user
+      // Find user, include sessions to check count
       const user = await prisma.user.findUnique({
         where: { username: credentials.username },
         include: { 
-          sessions: true // Include sessions to check count
+          sessions: true 
         }
       });
 
-      console.log('User found:', !!user);
+      // console.log('User found:', !!user);
       
       if (!user) {
         throw new Error('Invalid username or password');
@@ -115,19 +115,19 @@ export class AuthService {
 
       // Check if account is blocked
       if (user.isBlocked) {
-        console.log('User account is blocked');
+        // console.log('User account is blocked');
         throw new Error('Account is blocked. Please contact support.');
       }
 
       // Check if user has reached their session limit
       if (user.maxSessionCount > 0 && user.sessions.length >= user.maxSessionCount) {
-        console.log(`User ${user.username} has reached their session limit of ${user.maxSessionCount}`);
+        // console.log(`User ${user.username} has reached their session limit of ${user.maxSessionCount}`);
         throw new Error('You have reached your maximum number of active sessions. Please log out from another device.');
       }
 
       // Verify password
       const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash);
-      console.log('Password valid:', isPasswordValid);
+      // console.log('Password valid:', isPasswordValid);
       
       if (!isPasswordValid) {
         // Increment failed login attempts
@@ -160,14 +160,14 @@ export class AuthService {
 
       // Create a new session with tokens
       const tokens = await this.createSession(user, userAgent, ipAddress);
-      console.log('Session created with tokens');
+      // console.log('Session created with tokens');
       
       return {
         user,
         tokens
       };
     } catch (error) {
-      console.error('AuthService login error:', error);
+      // console.error('AuthService login error:', error);
       throw error;
     }
   }
@@ -273,7 +273,10 @@ export class AuthService {
       // Update user to set isActive to false
       await prisma.user.update({
         where: { id: session.userId },
-        data: { isActive: false }
+        data: { 
+          isActive: false,
+          updatedAt: new Date()
+         }
       });
       
       // Delete the session

@@ -147,10 +147,11 @@ export default function DashboardPage() {
     setShowAddDialog(true);
   };
   
+  // Set loading to true at start
   const handleQuickAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormErrors([]);
-    setIsSubmitting(true); // Set loading to true at start
+    setIsSubmitting(true); 
     
     // Validate form
     const errors = [];
@@ -160,8 +161,7 @@ export default function DashboardPage() {
     
     if (errors.length > 0) {
       setFormErrors(errors);
-      setIsSubmitting(false); // Reset loading if validation fails
-      return;
+      setIsSubmitting(false); 
     }
     
     try {

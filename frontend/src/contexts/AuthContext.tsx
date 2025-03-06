@@ -33,36 +33,6 @@ const api = axios.create({
   withCredentials: true, // Important for cookies
 });
 
-// Interceptor for token refresh
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    
-    // Skip refresh token for auth endpoints to prevent loops
-    const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
-                          originalRequest.url?.includes('/auth/register') ||
-                          originalRequest.url?.includes('/auth/verify-session');
-    
-    // If error is 401 and we haven't already tried to refresh and it's not an auth endpoint
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
-      originalRequest._retry = true;
-      
-      try {
-        // Don't try to refresh here - redirect instead
-        window.location.href = '/auth/login?session=expired';
-        return Promise.reject(error);
-      } catch (refreshError) {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        return Promise.reject(refreshError);
-      }
-    }
-    
-    return Promise.reject(error);
-  }
-);
-
 // Provider component
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -303,7 +273,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       if (!refreshToken) {
         console.error('No refresh token available');
-        await logout();
+        setIsLoading(false);
         return false;
       }
       
@@ -312,8 +282,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       if (!isValid) {
         console.log('Session invalid, logging out');
-        // Use the existing logout function that we know works
         await logout();
+        setIsLoading(false);
         return false;
       }
       
@@ -323,6 +293,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       if (!renewed) {
         console.log('Session renewal failed, logging out');
         await logout();
+        setIsLoading(false);
         return false;
       }
       

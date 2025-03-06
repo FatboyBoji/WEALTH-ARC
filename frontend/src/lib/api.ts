@@ -1,4 +1,5 @@
 import axios from 'axios';
+import tokenService from './tokenService';
 
 // Create a base API instance
 const api = axios.create({
@@ -51,20 +52,24 @@ api.interceptors.response.use(
       // Only handle token-related errors
       if (isTokenError) {
         try {
-          // This is a token error, clear tokens and redirect to login
-          console.log('Token expired, clearing tokens and redirecting to login');
+          // Use our token service to refresh the token
+          const success = await tokenService.checkAndRefreshToken();
           
-          // Clear tokens to ensure we don't attempt to use them again
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          
-          // Redirect to login page with expired session parameter
+          if (success) {
+            // Update header for the original request
+            originalRequest.headers.Authorization = `Bearer ${tokenService.getAccessToken()}`;
+            
+            // Retry the original request
+            return axios(originalRequest);
+          } else {
+            throw new Error('Failed to refresh token');
+          }
+        } catch (refreshError) {
+          // If refresh fails, log out
+          console.error('Error refreshing token:', refreshError);
+          tokenService.clearTokens();
           window.location.href = '/auth/login?session=expired';
           return Promise.reject(error);
-        } catch (refreshError) {
-          console.error('Error during session expiry handling:', refreshError);
-          window.location.href = '/auth/login';
-          return Promise.reject(refreshError);
         }
       } else {
         // For non-token related 401/403 errors, just reject
